@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "docs-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server"],
+      "cwd": "docs",
+      "autoPort": true
+    },
+    {
+      "name": "quota-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4173"],
+      "cwd": ".claude/preview",
+      "port": 4173
+    },
+    {
+      "name": "frontend-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "spring-ai-harness-server-frontend",
+      "autoPort": true
+    }
+  ]
+}
