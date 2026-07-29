@@ -2,6 +2,7 @@ package io.github.springai.harness.permission;
 
 import org.springframework.util.AntPathMatcher;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -16,7 +17,8 @@ public class FileAclMatcher {
     private final PermissionConfig.FileAclConfig.Policy defaultPolicy;
 
     public FileAclMatcher(PermissionConfig.FileAclConfig fileAcl) {
-        this.rules = fileAcl.rules();
+        // 拷贝为可变 List，避免 List.of()/.toList() 返回的不可变 List sort 失败
+        this.rules = new ArrayList<>(fileAcl.rules());
         this.defaultPolicy = fileAcl.defaultPolicy();
         // 预排序：DESC by priority，同级 DENY > WRITE > READ —— 遍历时第一个命中即胜出
         this.rules.sort(Comparator
