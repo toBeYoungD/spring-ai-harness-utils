@@ -7,6 +7,8 @@ description: Spring AI Harness 项目开发规范与工作流导航。何时用 
 
 本 skill 是项目规范的**主动入口**：浓缩核心约束 + 指向权威文档。新会话或存量会话调用后即可开始正确工作。详情仍以权威文档为准（见第六节导航表），本 skill 不重复其全文，避免漂移。
 
+> **公司内入口**：若 `.claude/skills/` 不可用，直接读 `docs/开发记录/dev-specs/00-项目规范总览.md`（与 skill 内容同步、文字镜像）。公司内只传 dev-specs，打开目录第一眼就能看到。
+
 ## 一、何时用本 skill
 
 - 新会话 / 存量会话**首次接手本项目任何开发任务**前，先读本 skill。
@@ -27,7 +29,7 @@ description: Spring AI Harness 项目开发规范与工作流导航。何时用 
 | `spring-ai-harness-utils` | Spring AI agent loop advisor 库（上下文压缩、技能注入、自动记忆、HITL、工具结果预算）+ 共享 `StorageProvider` 接口 |
 | `spring-ai-harness-server-frontend` | React 18 + Ant Design 4.7 + Vite 管理台（文件管理器、MCP 调试器、配额管理、日志审计） |
 | `spring-ai-harness-utils-bom` | 下游消费 BOM |
-| `examples/qwenpaw-demo` | 完整 agent workspace demo（沙箱、定时任务、MCP client 接入） |
+| `examples/qwenpaw-demo` | 完整 agent workspace demo（沙箱、定时任务、MCP client 接入）。**公司内对应：`harness-agent`** |
 
 ## 三、前后端联动（核心）
 
@@ -138,7 +140,7 @@ REST controller 与 MCP tools **不各自实现文件操作**，都走：
 | 前后端架构 / 安全 / 编码标准（权威） | `AGENTS.md`（root + 子模块） |
 | 复刻工作流总纲 | `docs/开发记录/内部二次开发复刻流程.md` |
 | 并行会话协作 | `docs/开发记录/并行会话启动提示词.md` |
-| dev-spec 模板与既有记录 | `docs/开发记录/dev-specs/` |
+| dev-spec 模板与既有记录 | `docs/开发记录/dev-specs/`（**先读 `00-项目规范总览.md`**，NN 递增） |
 | 专题开发方案 | `docs/开发记录/开发方案/`（MCP 工具权限隔离 / 文件权限应用端 / phase2 日志审计） |
 | 评审用安全体系 | `docs/技术方案/spring-ai-harness-安全体系技术方案(正式版).md` |
 | 图集 | `docs/图集/*.drawio` |
