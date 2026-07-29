@@ -32,7 +32,7 @@ import java.util.Map;
  * @author ichaobuster
  */
 @Configuration
-@EnableConfigurationProperties({HarnessMcpServerProperties.class})
+@EnableConfigurationProperties({HarnessMcpServerProperties.class, PermissionProperties.class})
 public class HarnessMcpServerAutoConfiguration {
 
 	@Bean

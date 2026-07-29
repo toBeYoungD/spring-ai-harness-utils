@@ -1,6 +1,8 @@
 package io.github.springai.harness.controller;
 
 import io.github.springai.harness.auth.AuthenticationException;
+import io.github.springai.harness.permission.PermissionDeniedException;
+import io.github.springai.harness.storage.QuotaExceededException;
 import io.github.springai.harness.storage.QuotaExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,16 @@ public class GlobalRestExceptionHandler {
 		log.warn("认证失败 [{} {}]: {}", request.getMethod(), request.getRequestURI(), e.getMessage(), e);
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 				.body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Unauthorized"));
+	}
+
+	@ExceptionHandler(PermissionDeniedException.class)
+	public ResponseEntity<Map<String, String>> handlePermissionDeniedException(HttpServletRequest request, PermissionDeniedException e) {
+		log.warn("权限拒绝 [{} {}]: path={} op={}", request.getMethod(), request.getRequestURI(), e.getPath(), e.getOperation());
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+				.body(Map.of("error", "permission denied",
+						"path", e.getPath() != null ? e.getPath() : "",
+						"operation", e.getOperation() != null ? e.getOperation() : "",
+						"reason", e.getReason() != null ? e.getReason() : ""));
 	}
 
 	/**

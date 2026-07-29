@@ -49,6 +49,8 @@ public class HarnessMcpServerProperties {
 
 	private AttachmentProperties attachment = new AttachmentProperties();
 
+	private PermissionProperties permission = new PermissionProperties();
+
 	@Data
 	public static class ObservabilityProperties {
 		/**

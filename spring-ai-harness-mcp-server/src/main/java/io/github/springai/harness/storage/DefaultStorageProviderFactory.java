@@ -5,6 +5,7 @@ import io.github.springai.harness.auth.AuthenticationProvider;
 import io.github.springai.harness.auth.WorkspaceIdentity;
 import io.github.springai.harness.autoconfig.HarnessMcpServerProperties;
 import io.micrometer.observation.ObservationRegistry;
+import io.github.springai.harness.permission.PermissionEnforcedStorageProvider;
 import io.modelcontextprotocol.common.McpTransportContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -60,6 +61,13 @@ public class DefaultStorageProviderFactory implements StorageProviderFactory {
 
 		if (this.properties.getQuota().isEnabled()) {
 			baseStorage = new QuotaEnforcedStorageProvider(baseStorage, this.quotaManager);
+		}
+
+		// 权限装饰器——装饰链最外层（拒绝先于配额/观测副作用）
+		if (this.properties.getPermission().isEnabled()) {
+			String identityKey = identity.system() + "-" + identity.agent() + "-" + identity.user();
+			var permConfig = this.properties.getPermission().toPermissionConfig(identityKey);
+			baseStorage = new PermissionEnforcedStorageProvider(baseStorage, permConfig);
 		}
 
 		ObservationRegistry registry = observationRegistryProvider != null ? observationRegistryProvider.getIfAvailable() : null;
