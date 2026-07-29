@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link PermissionProperties} 单元测试 -- yaml 配置到 PermissionConfig 的转换。
+ * 含管理员全局 + 用户自服务 ACL 的 AND 合并。
  */
 @DisplayName("PermissionProperties 配置转换")
 class PermissionPropertiesTest {
@@ -76,51 +77,106 @@ class PermissionPropertiesTest {
     }
 
     @Test
-    @DisplayName("文件 ACL 规则转换: pattern + access + priority")
-    void fileAclRulesConversion() {
+    @DisplayName("管理员全局 ACL 规则转换: pattern + access + priority")
+    void adminAclRulesConversion() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
         PermissionProperties.AclRuleProperties r1 = new PermissionProperties.AclRuleProperties();
         r1.setPattern("secrets/**");
         r1.setAccess(PermissionConfig.Access.DENY);
         r1.setPriority(10);
-        PermissionProperties.AclRuleProperties r2 = new PermissionProperties.AclRuleProperties();
-        r2.setPattern("**/*.env");
-        r2.setAccess(PermissionConfig.Access.DENY);
-        r2.setPriority(100);
-        props.setFileAclRules(List.of(r1, r2));
+        props.setFileAclRules(List.of(r1));
 
         PermissionConfig config = props.toPermissionConfig("any-user");
 
-        assertThat(config.fileAcl().rules()).hasSize(2);
-        assertThat(config.fileAcl().rules().get(0).pattern()).isEqualTo("secrets/**");
-        assertThat(config.fileAcl().rules().get(0).access()).isEqualTo(PermissionConfig.Access.DENY);
-        assertThat(config.fileAcl().rules().get(0).priority()).isEqualTo(10);
-        assertThat(config.fileAcl().rules().get(1).pattern()).isEqualTo("**/*.env");
-        assertThat(config.fileAcl().rules().get(1).priority()).isEqualTo(100);
+        assertThat(config.fileAcl().adminRules()).hasSize(1);
+        assertThat(config.fileAcl().adminRules().get(0).pattern()).isEqualTo("secrets/**");
+        assertThat(config.fileAcl().adminRules().get(0).access()).isEqualTo(PermissionConfig.Access.DENY);
+        assertThat(config.fileAcl().adminRules().get(0).priority()).isEqualTo(10);
+        // 未配 user 规则 -> 用户规则集为空
+        assertThat(config.fileAcl().userRules()).isEmpty();
     }
 
     @Test
-    @DisplayName("default-acl-policy=deny-all: 无匹配规则拒绝")
-    void denyAllAclPolicy() {
+    @DisplayName("用户自服务 ACL 规则: 按 identity 取出")
+    void userAclRulesPerIdentity() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
-        props.setDefaultAclPolicy(PermissionProperties.Policy.DENY_ALL);
+        PermissionProperties.AclRuleProperties aliceRule = new PermissionProperties.AclRuleProperties();
+        aliceRule.setPattern("docs/secret/**");
+        aliceRule.setAccess(PermissionConfig.Access.DENY);
+        aliceRule.setPriority(20);
+        props.setUserFileAcls(Map.of(
+                "openclaw-code-assistant-alice", List.of(aliceRule)));
 
-        PermissionConfig config = props.toPermissionConfig("any-user");
+        // alice 的身份 -> 取到自己的规则
+        PermissionConfig aliceConfig = props.toPermissionConfig("openclaw-code-assistant-alice");
+        assertThat(aliceConfig.fileAcl().userRules()).hasSize(1);
+        assertThat(aliceConfig.fileAcl().userRules().get(0).pattern()).isEqualTo("docs/secret/**");
 
-        assertThat(config.fileAcl().defaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.DENY_ALL);
+        // bob 的身份 -> 无用户规则
+        PermissionConfig bobConfig = props.toPermissionConfig("openclaw-code-assistant-bob");
+        assertThat(bobConfig.fileAcl().userRules()).isEmpty();
     }
 
     @Test
-    @DisplayName("default-acl-policy=allow-all（默认）: 无匹配规则放行")
-    void allowAllAclPolicyDefault() {
+    @DisplayName("管理员 + 用户规则同时存在: 两层都注入")
+    void bothAclRulesInjected() {
+        PermissionProperties props = new PermissionProperties();
+        props.setEnabled(true);
+        PermissionProperties.AclRuleProperties adminRule = new PermissionProperties.AclRuleProperties();
+        adminRule.setPattern("secrets/**");
+        adminRule.setAccess(PermissionConfig.Access.DENY);
+        adminRule.setPriority(10);
+        props.setFileAclRules(List.of(adminRule));
+
+        PermissionProperties.AclRuleProperties userRule = new PermissionProperties.AclRuleProperties();
+        userRule.setPattern("docs/secret/**");
+        userRule.setAccess(PermissionConfig.Access.DENY);
+        userRule.setPriority(20);
+        props.setUserFileAcls(Map.of(
+                "openclaw-code-assistant-alice", List.of(userRule)));
+
+        PermissionConfig config = props.toPermissionConfig("openclaw-code-assistant-alice");
+
+        assertThat(config.fileAcl().adminRules()).hasSize(1);
+        assertThat(config.fileAcl().userRules()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("admin-acl-default-policy=deny-all")
+    void adminDenyAllPolicy() {
+        PermissionProperties props = new PermissionProperties();
+        props.setEnabled(true);
+        props.setAdminAclDefaultPolicy(PermissionProperties.Policy.DENY_ALL);
+
+        PermissionConfig config = props.toPermissionConfig("any-user");
+
+        assertThat(config.fileAcl().adminDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.DENY_ALL);
+    }
+
+    @Test
+    @DisplayName("user-acl-default-policy=deny-all")
+    void userDenyAllPolicy() {
+        PermissionProperties props = new PermissionProperties();
+        props.setEnabled(true);
+        props.setUserAclDefaultPolicy(PermissionProperties.Policy.DENY_ALL);
+
+        PermissionConfig config = props.toPermissionConfig("any-user");
+
+        assertThat(config.fileAcl().userDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.DENY_ALL);
+    }
+
+    @Test
+    @DisplayName("默认: admin/user 都 allow-all")
+    void defaultPoliciesAllowAll() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
 
         PermissionConfig config = props.toPermissionConfig("any-user");
 
-        assertThat(config.fileAcl().defaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL);
+        assertThat(config.fileAcl().adminDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL);
+        assertThat(config.fileAcl().userDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL);
     }
 
     @Test

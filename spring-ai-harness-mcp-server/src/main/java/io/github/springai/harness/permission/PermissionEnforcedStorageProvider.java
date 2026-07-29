@@ -1,5 +1,6 @@
 package io.github.springai.harness.permission;
 
+import io.github.springai.harness.storage.DownloadLink;
 import io.github.springai.harness.storage.StorageProvider;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,7 +67,7 @@ public class PermissionEnforcedStorageProvider implements StorageProvider {
             PermissionConfig.AclRule rule = fileAclMatcher.findMatchingRule(path);
             String reason = rule != null
                     ? rule.access() + " by " + rule.pattern() + " (p" + rule.priority() + ")"
-                    : "default-policy " + config.fileAcl().defaultPolicy();
+                    : "default-policy (admin=" + config.fileAcl().adminDefaultPolicy() + ", user=" + config.fileAcl().userDefaultPolicy() + ")";
             throw new PermissionDeniedException(path, "read", reason);
         }
     }
@@ -79,7 +80,7 @@ public class PermissionEnforcedStorageProvider implements StorageProvider {
             PermissionConfig.AclRule rule = fileAclMatcher.findMatchingRule(path);
             String reason = rule != null
                     ? rule.access() + " by " + rule.pattern() + " (p" + rule.priority() + ")"
-                    : "default-policy " + config.fileAcl().defaultPolicy();
+                    : "default-policy (admin=" + config.fileAcl().adminDefaultPolicy() + ", user=" + config.fileAcl().userDefaultPolicy() + ")";
             throw new PermissionDeniedException(path, "write", reason);
         }
     }

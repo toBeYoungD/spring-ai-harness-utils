@@ -33,27 +33,30 @@ class PermissionEnforcedStorageProviderTest {
         return PermissionConfig.builder()
                 .enabled(true)
                 .fileAcl(new PermissionConfig.FileAclConfig(
+                        PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of(),
                         PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()))
                 .build();
     }
 
-    /** secrets/** DENY 配置 */
+    /** secrets/** DENY 配置（放在管理员全局层） */
     private PermissionConfig denySecretsConfig() {
         return PermissionConfig.builder()
                 .enabled(true)
                 .fileAcl(new PermissionConfig.FileAclConfig(
                         PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
-                        List.of(new PermissionConfig.AclRule("secrets/**", PermissionConfig.Access.DENY, 10))))
+                        List.of(new PermissionConfig.AclRule("secrets/**", PermissionConfig.Access.DENY, 10)),
+                        PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()))
                 .build();
     }
 
-    /** docs/** READ 配置（只读） */
+    /** docs/** READ 配置（只读，放在管理员全局层） */
     private PermissionConfig readDocsConfig() {
         return PermissionConfig.builder()
                 .enabled(true)
                 .fileAcl(new PermissionConfig.FileAclConfig(
                         PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
-                        List.of(new PermissionConfig.AclRule("docs/**", PermissionConfig.Access.READ, 10))))
+                        List.of(new PermissionConfig.AclRule("docs/**", PermissionConfig.Access.READ, 10)),
+                        PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()))
                 .build();
     }
 

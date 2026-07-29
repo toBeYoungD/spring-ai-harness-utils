@@ -29,10 +29,14 @@ public record PermissionConfig(
         }
     }
 
-    // ===== 文件 ACL =====
+    // ===== 文件 ACL（管理员全局 + 用户自服务，AND 合并取严）=====
 
-    public record FileAclConfig(Policy defaultPolicy, List<AclRule> rules) {
-        public static final FileAclConfig ALLOW_ALL = new FileAclConfig(Policy.ALLOW_ALL, List.of());
+    public record FileAclConfig(
+            Policy adminDefaultPolicy, List<AclRule> adminRules,   // 管理员全局规则（安全底线）
+            Policy userDefaultPolicy, List<AclRule> userRules      // 该身份用户自服务规则（已按 identity 取出）
+    ) {
+        public static final FileAclConfig ALLOW_ALL = new FileAclConfig(
+                Policy.ALLOW_ALL, List.of(), Policy.ALLOW_ALL, List.of());
 
         public enum Policy {ALLOW_ALL, DENY_ALL}
     }
