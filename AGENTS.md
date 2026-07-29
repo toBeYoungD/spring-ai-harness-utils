@@ -11,7 +11,7 @@
 
 The project consists of two core sub-modules:
 1. **`spring-ai-harness-mcp-server`**: A stateless server built on Spring Boot & Spring AI MCP, providing workspace-isolated secure path filtering, Snapshot creation & version rollback, streaming multimedia file processing, and pluggable OTel tracing.
-2. **`spring-ai-harness-server-frontend`**: A management Web console built with React 18 + Ant Design 5 + Vite, featuring a Windows Explorer-style file manager and an MCP Client debugger.
+2. **`spring-ai-harness-server-frontend`**: A management Web console built with React 18 + Ant Design 4.7 + Vite, featuring a Windows Explorer-style file manager, an MCP Client debugger, a quota management console, and an audit log console.
 
 ### Unified Design Principles & Security Standards
 - **No hardcoded FQCNs in code**: Classes must be imported via explicit `import` statements. Using full `packageName.ClassName` paths in method signatures, type declarations, or `new` instantiations is strictly forbidden.
@@ -101,7 +101,7 @@ spring.servlet.multipart.max-request-size=100MB
 
 ### 2.1 Tech Stack & Architecture
 - **Core Framework**: React 18 (JavaScript) + Vite build chain.
-- **Component System**: Ant Design (`antd` v5) with flat dark glassmorphism theme.
+- **Component System**: Ant Design (`antd` v4.7). Existing components use the dark glassmorphism theme (`styles/index.css`); the new quota/audit consoles use a scoped light theme (`styles/console-light.css` under `.console-light`/`.console-modal`/`.console-drawer`). Theme unification is deferred.
 - **File Drag & Drop**: HTML5 native Drag & Drop API for cross-breadcrumb and directory drag-move-rename.
 - **Build Scripts**:
   * Dev hot reload: `npm run dev` (port 3000)
@@ -113,14 +113,22 @@ spring-ai-harness-server-frontend/
 ├── vite.config.js               # Vite config (JSX Esbuild transform & proxy forwarding)
 ├── src/
 │   ├── components/
-│   │   ├── FileExplorer.js      # Windows Explorer-style main component
+│   │   ├── FileExplorer.js      # Windows Explorer-style main component (dark)
 │   │   ├── FileListTable.js     # Table list view component
 │   │   ├── FileGridCards.js     # Grid card view component
-│   │   ├── McpDebugger.js       # Built-in MCP Client JSON-RPC debug panel
-│   │   └── SnapshotDrawer.js    # Sidebar snapshot list & Rewind console
+│   │   ├── FileViewerModal.js   # In-browser text editor & preview modal
+│   │   ├── NewItemModal.js      # Modal for creating new files/folders
+│   │   ├── McpDebugger.js       # Built-in MCP Client JSON-RPC debug panel (dark)
+│   │   ├── SnapshotDrawer.js    # Sidebar snapshot list & Rewind console
+│   │   ├── QuotaConsole.js      # Quota management console (light, scoped)
+│   │   └── AuditConsole.js      # Audit log console (light, scoped)
 │   ├── services/
-│   │   └── api.js               # Axios-based backend service & /mcp dispatcher
-│   └── App.js                   # Top-level sticky navbar & view switching
+│   │   └── api.js               # Axios backend service & /mcp dispatcher (quota/audit still mock)
+│   ├── styles/
+│   │   ├── index.css            # Dark glassmorphism theme tokens
+│   │   └── console-light.css    # Light theme for quota/audit consoles (scoped isolation)
+│   ├── App.js                   # Top-level sticky navbar & view switching
+│   └── index.js                 # React DOM root entry
 ```
 
 ### 2.2 Dev Server Reverse Proxy
@@ -131,8 +139,8 @@ During local development (`npm run dev`), Vite's dev proxy transparently routes 
 ### 2.3 Frontend Coding & Design Standards
 
 #### UI & Component Guidelines
-- **Ant Design first**: Do not hand-write basic layouts arbitrarily. Prefer and reuse Ant Design v5 layout components (`Space`, `Flex`, `Row`, `Col`, `Table`, `Card`).
-- **Style consistency**: Do not introduce TailwindCSS or heavy CSS-in-JS libraries. Use the global dark glassmorphism theme from `styles/index.css` with unified custom Theme Tokens (avoid hardcoded hex colors).
+- **Ant Design first**: Do not hand-write basic layouts arbitrarily. Prefer and reuse Ant Design v4 layout components (`Space`, `Row`, `Col`, `Table`, `Card`). (Note: `Flex` is v5-only and unavailable after the v4.7 downgrade.)
+- **Style consistency**: Do not introduce TailwindCSS or heavy CSS-in-JS libraries. Existing components use the dark glassmorphism theme from `styles/index.css`; the quota/audit consoles use the scoped light theme from `styles/console-light.css`. Use unified custom Theme Tokens (avoid hardcoded hex colors). Theme unification is deferred.
 - **Icon usage**: Always use `@ant-design/icons` with per-component imports for tree-shaking optimization by Vite/Rollup.
 
 #### Code Style Conventions

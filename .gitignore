@@ -39,4 +39,5 @@ build/
 ### Claude Code local config & drawio backups ###
 *.bkp
 docs.zip
-.claude/
+.claude/*
+!.claude/skills/

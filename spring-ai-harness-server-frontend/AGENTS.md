@@ -18,11 +18,14 @@ spring-ai-harness-server-frontend/
 │   │   ├── FileViewerModal.js   # In-browser text editor & preview modal
 │   │   ├── SnapshotDrawer.js    # Snapshot history & Rewind drawer
 │   │   ├── NewItemModal.js      # Modal for creating new text files & folders
-│   │   └── McpDebugger.js       # MCP Client debugger panel with JSON-RPC wire inspector
+│   │   ├── McpDebugger.js       # MCP Client debugger panel with JSON-RPC wire inspector (dark)
+│   │   ├── QuotaConsole.js      # Quota management console (light, scoped theme)
+│   │   └── AuditConsole.js      # Audit log console (light, scoped theme)
 │   ├── services/
-│   │   └── api.js               # Axios REST client (Workspace/Admin APIs & /mcp client calls)
+│   │   └── api.js               # Axios REST client (Workspace/Admin APIs & /mcp calls; quota/audit still mock)
 │   ├── styles/
-│   │   └── index.css            # Dark mode tokens, glassmorphism, micro-animations
+│   │   ├── index.css            # Dark mode tokens, glassmorphism, micro-animations
+│   │   └── console-light.css    # Light theme for quota/audit consoles (scoped isolation)
 │   ├── App.js                   # Root React layout containing the navigation header
 │   └── index.js                 # React DOM root entry
 └── package.json                 # React project configuration with Vite scripts
@@ -33,8 +36,8 @@ spring-ai-harness-server-frontend/
 ## Tech Stack & Design Rules
 
 - **Framework**: React 18 (JavaScript) with Vite build system.
-- **UI Library**: Ant Design (`antd` v5) + `@ant-design/icons`.
-- **Styling**: Modern dark glassmorphism theme (`index.css`), smooth hover transitions, vibrant action tags.
+- **UI Library**: Ant Design (`antd` v4.7) + `@ant-design/icons` 4.7 + `moment`. (Downgraded from v5; existing components migrated to v4 API — `Tabs.TabPane`, `Modal/Drawer visible`, `Breadcrumb.Item`, `ConfigProvider` without `theme`.)
+- **Styling**: Existing components use the dark glassmorphism theme (`index.css`); the new quota/audit consoles use a scoped light theme (`console-light.css` under `.console-light`/`.console-modal`/`.console-drawer`). Theme unification is deferred.
 - **State & Drag & Drop**: Native HTML5 Drag & Drop API for moving files/folders across breadcrumb paths and target folders.
 - **MCP Client Debugging**: Calls standard JSON-RPC 2.0 methods (`tools/list`, `tools/call`, `resources/list`, `resources/read`) on `/mcp` via HTTP POST, displaying the raw wire traffic in a split inspector view.
 
@@ -43,8 +46,8 @@ spring-ai-harness-server-frontend/
 ## Frontend Coding & Design Standards
 
 ### UI & Component Guidelines
-- **Ant Design first**: Do not hand-write basic layouts arbitrarily. Prefer and reuse Ant Design v5 layout and typography components (`Space`, `Flex`, `Row`, `Col`, `Table`, `Card`).
-- **Style consistency**: Do not introduce TailwindCSS or heavy CSS-in-JS libraries. Use the global dark glassmorphism theme from `styles/index.css` with unified custom Theme Tokens (avoid hardcoded hex colors).
+- **Ant Design first**: Do not hand-write basic layouts arbitrarily. Prefer and reuse Ant Design v4 layout and typography components (`Space`, `Row`, `Col`, `Table`, `Card`). (Note: `Flex` is v5-only and unavailable after the v4.7 downgrade.)
+- **Style consistency**: Do not introduce TailwindCSS or heavy CSS-in-JS libraries. Existing components use the dark glassmorphism theme from `styles/index.css`; quota/audit consoles use the scoped light theme from `styles/console-light.css`. Use unified custom Theme Tokens (avoid hardcoded hex colors). Theme unification is deferred.
 - **Icon usage**: Always use `@ant-design/icons` with per-component imports for tree-shaking optimization by Vite/Rollup.
 - **Form validation**: For complex forms, use Ant Design's `Form` component with built-in validation rules for maintainability.
 
