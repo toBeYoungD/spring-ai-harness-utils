@@ -3,7 +3,6 @@ package io.github.springai.harness.controller;
 import io.github.springai.harness.auth.AuthenticationException;
 import io.github.springai.harness.permission.PermissionDeniedException;
 import io.github.springai.harness.storage.QuotaExceededException;
-import io.github.springai.harness.storage.QuotaExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
