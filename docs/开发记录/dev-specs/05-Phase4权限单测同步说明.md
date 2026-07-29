@@ -1,21 +1,21 @@
 # Phase 4 权限执行面单测--同步说明（含完整源码）
 
-> 对应 commit：`f514fef`（初版）+ `b8ad306`（适配按人维度 + AND 合并修正）
+> 对应 commit：`f514fef` test(04)
 > 本文内嵌全部新增测试源码 + FileAclMatcher 修复，**公司内网无需拉取外部 git**，按本文创建文件即可复刻。
 
 ---
 
 ## 一、改动概要
 
-为 Phase 4 权限执行面补充单元测试，并修复 `FileAclMatcher` 的不可变 List 排序 bug。测试已适配管理员全局 + 用户自服务 AND 合并模型（见 [04 同步文档](04-Phase4-统一权限执行面同步说明.md)）。
+为 Phase 4 权限执行面补充单元测试，并修复 `FileAclMatcher` 的不可变 List 排序 bug。
 
 ### 新增文件（3 个测试类）
 
 | # | 路径 | 说明 |
 |---|---|---|
-| 1 | `permission/FileAclMatcherTest.java` | 判定引擎测试（含 AND 合并冲突矩阵） |
+| 1 | `permission/FileAclMatcherTest.java` | 判定引擎测试 |
 | 2 | `permission/PermissionEnforcedStorageProviderTest.java` | 装饰器测试 |
-| 3 | `autoconfig/PermissionPropertiesTest.java` | 配置转换测试（含 per-identity） |
+| 3 | `autoconfig/PermissionPropertiesTest.java` | 配置转换测试 |
 
 > 测试包路径前缀：`spring-ai-harness-mcp-server/src/test/java/io/github/springai/harness/`
 
@@ -29,15 +29,30 @@
 
 ## 二、bug 修复：FileAclMatcher 不可变 List 排序
 
-`FileAclMatcher` 构造时对 `fileAcl.rules()` 调用 `sort()`，但 `List.of()` / `.toList()` 返回不可变 List，sort 抛 `UnsupportedOperationException`。修复：拷贝为可变 List。
+### 问题
+
+`FileAclMatcher` 构造时对 `fileAcl.rules()` 调用 `sort()`，但 `List.of()` / `.toList()` 返回的是**不可变 List**，sort 会抛 `UnsupportedOperationException`。实际运行时只要配置了任何 ACL 规则就会触发。
+
+### 修复
+
+新增 import：
 
 ```java
-// 新增 import
 import java.util.ArrayList;
+```
 
-// 构造器（adminRules 和 userRules 各自拷贝）
-this.adminRules = new ArrayList<>(fileAcl.adminRules());
-this.userRules = new ArrayList<>(fileAcl.userRules());
+构造器改为拷贝为可变 List：
+
+```java
+public FileAclMatcher(PermissionConfig.FileAclConfig fileAcl) {
+    // 拷贝为可变 List，避免 List.of()/.toList() 返回的不可变 List sort 失败
+    this.rules = new ArrayList<>(fileAcl.rules());
+    this.defaultPolicy = fileAcl.defaultPolicy();
+    // 预排序：DESC by priority，同级 DENY > WRITE > READ -- 遍历时第一个命中即胜出
+    this.rules.sort(Comparator
+            .comparingInt(PermissionConfig.AclRule::priority).reversed()
+            .thenComparing(r -> r.access().ordinal()));
+}
 ```
 
 ---
@@ -58,89 +73,91 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * {@link FileAclMatcher} 单元测试 -- 判定引擎核心逻辑（管理员全局 + 用户自服务 AND 合并）。
+ * {@link FileAclMatcher} 单元测试 -- 判定引擎核心逻辑。
  */
 @DisplayName("FileAclMatcher 判定引擎")
 class FileAclMatcherTest {
+
+    private PermissionConfig.FileAclConfig acl(PermissionConfig.FileAclConfig.Policy policy, PermissionConfig.AclRule... rules) {
+        return new PermissionConfig.FileAclConfig(policy, List.of(rules));
+    }
 
     private PermissionConfig.AclRule rule(String pattern, PermissionConfig.Access access, int priority) {
         return new PermissionConfig.AclRule(pattern, access, priority);
     }
 
-    /** 仅管理员规则（user allow-all），用于单层判定测试 */
-    private PermissionConfig.FileAclConfig adminAcl(PermissionConfig.AclRule... rules) {
-        return new PermissionConfig.FileAclConfig(
-                PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of(rules),
-                PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of());
-    }
-
-    /** 仅用户规则（admin allow-all），用于单层判定测试 */
-    private PermissionConfig.FileAclConfig userAcl(PermissionConfig.AclRule... rules) {
-        return new PermissionConfig.FileAclConfig(
-                PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of(),
-                PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of(rules));
-    }
-
-    /** 管理员 + 用户双层 */
-    private PermissionConfig.FileAclConfig bothAcl(
-            List<PermissionConfig.AclRule> adminRules, List<PermissionConfig.AclRule> userRules) {
-        return new PermissionConfig.FileAclConfig(
-                PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, adminRules,
-                PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, userRules);
-    }
-
     @Nested
-    @DisplayName("单层判定（管理员规则，user allow-all）")
-    class SingleLayer {
+    @DisplayName("默认策略（无匹配规则）")
+    class DefaultPolicy {
 
         @Test
-        @DisplayName("allow-all: 无匹配放行")
+        @DisplayName("allow-all: 无匹配放行 read/write")
         void allowAll() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl());
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL));
             assertThat(m.canRead("any/path")).isTrue();
             assertThat(m.canWrite("any/path")).isTrue();
         }
 
         @Test
-        @DisplayName("deny-all: 无匹配拒绝")
+        @DisplayName("deny-all: 无匹配拒绝 read/write")
         void denyAll() {
-            FileAclMatcher m = new FileAclMatcher(new PermissionConfig.FileAclConfig(
-                    PermissionConfig.FileAclConfig.Policy.DENY_ALL, List.of(),
-                    PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()));
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.DENY_ALL));
             assertThat(m.canRead("any/path")).isFalse();
             assertThat(m.canWrite("any/path")).isFalse();
         }
+    }
+
+    @Nested
+    @DisplayName("glob 匹配")
+    class GlobMatch {
 
         @Test
         @DisplayName("* 单段匹配，不跨段")
-        void singleStar() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(rule("*.env", PermissionConfig.Access.DENY, 10)));
+        void singleStarSingleSegment() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("*.env", PermissionConfig.Access.DENY, 10)));
             assertThat(m.canRead("config.env")).isFalse();
-            assertThat(m.canRead("dir/config.env")).isTrue();
+            assertThat(m.canRead("dir/config.env")).isTrue(); // * 不跨段
         }
 
         @Test
         @DisplayName("** 跨段匹配")
-        void doubleStar() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(rule("**/*.env", PermissionConfig.Access.DENY, 10)));
+        void doubleStarCrossSegment() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("**/*.env", PermissionConfig.Access.DENY, 10)));
             assertThat(m.canRead("dir/config.env")).isFalse();
             assertThat(m.canRead("a/b/c.env")).isFalse();
         }
 
         @Test
-        @DisplayName("priority 优先: 更具体覆盖更宽")
-        void priority() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(
+        @DisplayName("secrets/** 匹配 secrets 下所有")
+        void secretsAll() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("secrets/**", PermissionConfig.Access.DENY, 10)));
+            assertThat(m.canRead("secrets/key.txt")).isFalse();
+            assertThat(m.canRead("secrets/sub/key.txt")).isFalse();
+            assertThat(m.canRead("src/Main.java")).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("priority 优先")
+    class Priority {
+
+        @Test
+        @DisplayName("更具体规则（高 priority）覆盖更宽规则")
+        void moreSpecificWins() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
                     rule("secrets/**", PermissionConfig.Access.DENY, 10),
                     rule("secrets/public/**", PermissionConfig.Access.READ, 20)));
-            assertThat(m.canRead("secrets/public/readme.md")).isTrue();
-            assertThat(m.canRead("secrets/private/key.txt")).isFalse();
+            assertThat(m.canRead("secrets/public/readme.md")).isTrue();  // READ p20 胜出
+            assertThat(m.canRead("secrets/private/key.txt")).isFalse();  // DENY p10
         }
 
         @Test
-        @DisplayName("同级 deny-wins")
-        void denyWins() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(
+        @DisplayName("同级 deny-wins: 同 priority 下 DENY > WRITE > READ")
+        void samePriorityDenyWins() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
                     rule("doc/**", PermissionConfig.Access.WRITE, 10),
                     rule("doc/**", PermissionConfig.Access.DENY, 10)));
             assertThat(m.canRead("doc/a.txt")).isFalse();
@@ -148,9 +165,25 @@ class FileAclMatcherTest {
         }
 
         @Test
+        @DisplayName("同级 WRITE 胜 READ")
+        void samePriorityWriteOverRead() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("doc/**", PermissionConfig.Access.READ, 10),
+                    rule("doc/**", PermissionConfig.Access.WRITE, 10)));
+            assertThat(m.canWrite("doc/a.txt")).isTrue();
+            assertThat(m.canRead("doc/a.txt")).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("access 语义")
+    class AccessSemantics {
+
+        @Test
         @DisplayName("WRITE 隐含 READ")
         void writeImpliesRead() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(rule("src/**", PermissionConfig.Access.WRITE, 10)));
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.DENY_ALL,
+                    rule("src/**", PermissionConfig.Access.WRITE, 10)));
             assertThat(m.canRead("src/Main.java")).isTrue();
             assertThat(m.canWrite("src/Main.java")).isTrue();
         }
@@ -158,84 +191,19 @@ class FileAclMatcherTest {
         @Test
         @DisplayName("READ 路径: 可读不可写")
         void readOnly() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(rule("docs/**", PermissionConfig.Access.READ, 10)));
-            assertThat(m.canRead("docs/policy.md")).isTrue();
-            assertThat(m.canWrite("docs/policy.md")).isFalse();
-        }
-    }
-
-    @Nested
-    @DisplayName("AND 合并（管理员 × 用户，取严）")
-    class AndMerge {
-
-        @Test
-        @DisplayName("管理员 DENY 不可被用户放宽: 用户配 READ 仍 DENY")
-        void adminDenyNotOverridable() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(rule("secrets/**", PermissionConfig.Access.DENY, 10)),
-                    List.of(rule("secrets/public/**", PermissionConfig.Access.READ, 20))));
-            assertThat(m.canRead("secrets/public/readme.md")).isFalse();
-            assertThat(m.canRead("secrets/private/key.txt")).isFalse();
-        }
-
-        @Test
-        @DisplayName("用户可以更严: 管理员 READ + 用户 DENY -> DENY")
-        void userCanStricter() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(rule("docs/**", PermissionConfig.Access.READ, 10)),
-                    List.of(rule("docs/secret/**", PermissionConfig.Access.DENY, 20))));
-            assertThat(m.canRead("docs/policy.md")).isTrue();
-            assertThat(m.canRead("docs/secret/k.txt")).isFalse();
-        }
-
-        @Test
-        @DisplayName("管理员 READ + 用户 WRITE -> READ（取严，用户不能放宽到写）")
-        void userCannotBroadenToWrite() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(rule("docs/**", PermissionConfig.Access.READ, 10)),
-                    List.of(rule("docs/**", PermissionConfig.Access.WRITE, 10))));
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.DENY_ALL,
+                    rule("docs/**", PermissionConfig.Access.READ, 10)));
             assertThat(m.canRead("docs/policy.md")).isTrue();
             assertThat(m.canWrite("docs/policy.md")).isFalse();
         }
 
         @Test
-        @DisplayName("管理员 WRITE + 用户 READ -> READ（用户收紧为只读）")
-        void userNarrowsWriteToRead() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(rule("src/**", PermissionConfig.Access.WRITE, 10)),
-                    List.of(rule("src/**", PermissionConfig.Access.READ, 10))));
-            assertThat(m.canRead("src/Main.java")).isTrue();
-            assertThat(m.canWrite("src/Main.java")).isFalse();
-        }
-
-        @Test
-        @DisplayName("双方都 WRITE -> 可写")
-        void bothWrite() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(rule("src/**", PermissionConfig.Access.WRITE, 10)),
-                    List.of(rule("src/**", PermissionConfig.Access.WRITE, 10))));
-            assertThat(m.canRead("src/Main.java")).isTrue();
-            assertThat(m.canWrite("src/Main.java")).isTrue();
-        }
-
-        @Test
-        @DisplayName("管理员无规则 + 用户 DENY -> 用户拒绝（用户自服务生效）")
-        void userDenyWhenAdminSilent() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(),
-                    List.of(rule("temp/**", PermissionConfig.Access.DENY, 10))));
-            assertThat(m.canRead("temp/junk.txt")).isFalse();
-            assertThat(m.canRead("src/Main.java")).isTrue();
-        }
-
-        @Test
-        @DisplayName("管理员 deny-all + 用户 allow-all -> 拒绝（管理员兜底底线）")
-        void adminDenyAllNotOverridable() {
-            FileAclMatcher m = new FileAclMatcher(new PermissionConfig.FileAclConfig(
-                    PermissionConfig.FileAclConfig.Policy.DENY_ALL, List.of(),
-                    PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()));
-            assertThat(m.canRead("any/path")).isFalse();
-            assertThat(m.canWrite("any/path")).isFalse();
+        @DisplayName("DENY: 读写全拒")
+        void denyAll() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("secrets/**", PermissionConfig.Access.DENY, 10)));
+            assertThat(m.canRead("secrets/key.txt")).isFalse();
+            assertThat(m.canWrite("secrets/key.txt")).isFalse();
         }
     }
 
@@ -245,18 +213,21 @@ class FileAclMatcherTest {
 
         @Test
         @DisplayName("去前导 / 、./ 、多余斜杠")
-        void normalize() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(rule("secrets/**", PermissionConfig.Access.DENY, 10)));
+        void normalizeLeadingSlashes() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("secrets/**", PermissionConfig.Access.DENY, 10)));
             assertThat(m.canRead("/secrets/key.txt")).isFalse();
             assertThat(m.canRead("./secrets/key.txt")).isFalse();
             assertThat(m.canRead("secrets//key.txt")).isFalse();
+            assertThat(m.canRead("secrets///key.txt")).isFalse();
         }
 
         @Test
         @DisplayName("null 路径不抛异常")
         void nullPath() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl());
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL));
             assertThat(m.canRead(null)).isTrue();
+            assertThat(m.canWrite(null)).isTrue();
         }
     }
 
@@ -265,37 +236,28 @@ class FileAclMatcherTest {
     class FindMatchingRule {
 
         @Test
-        @DisplayName("管理员规则优先返回")
-        void adminRuleFirst() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(rule("secrets/**", PermissionConfig.Access.DENY, 10)),
-                    List.of(rule("secrets/public/**", PermissionConfig.Access.READ, 20))));
-            PermissionConfig.AclRule r = m.findMatchingRule("secrets/public/a.txt");
-            assertThat(r).isNotNull();
-            assertThat(r.pattern()).isEqualTo("secrets/**");
-        }
-
-        @Test
-        @DisplayName("无管理员规则时返回用户规则")
-        void userRuleFallback() {
-            FileAclMatcher m = new FileAclMatcher(bothAcl(
-                    List.of(),
-                    List.of(rule("temp/**", PermissionConfig.Access.DENY, 10))));
-            PermissionConfig.AclRule r = m.findMatchingRule("temp/a.txt");
-            assertThat(r).isNotNull();
-            assertThat(r.pattern()).isEqualTo("temp/**");
+        @DisplayName("返回 priority 最大的匹配规则")
+        void returnsHighestPriority() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("secrets/**", PermissionConfig.Access.DENY, 10),
+                    rule("secrets/public/**", PermissionConfig.Access.READ, 20)));
+            PermissionConfig.AclRule rule = m.findMatchingRule("secrets/public/a.txt");
+            assertThat(rule).isNotNull();
+            assertThat(rule.access()).isEqualTo(PermissionConfig.Access.READ);
+            assertThat(rule.priority()).isEqualTo(20);
         }
 
         @Test
         @DisplayName("无匹配返回 null")
-        void noMatch() {
-            FileAclMatcher m = new FileAclMatcher(adminAcl(rule("secrets/**", PermissionConfig.Access.DENY, 10)));
+        void noMatchReturnsNull() {
+            FileAclMatcher m = new FileAclMatcher(acl(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
+                    rule("secrets/**", PermissionConfig.Access.DENY, 10)));
             assertThat(m.findMatchingRule("src/Main.java")).isNull();
         }
     }
 
     @Test
-    @DisplayName("AclRule 校验: pattern/access 非空")
+    @DisplayName("AclRule 校验: pattern 不能为空")
     void aclRuleValidation() {
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalArgumentException.class,
@@ -337,58 +299,61 @@ class PermissionEnforcedStorageProviderTest {
     @Mock
     private StorageProvider delegate;
 
+    // ===== 配置构造辅助 =====
+
     /** 全放行配置（无规则 + allow-all） */
     private PermissionConfig allowAllConfig() {
         return PermissionConfig.builder()
                 .enabled(true)
                 .fileAcl(new PermissionConfig.FileAclConfig(
-                        PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of(),
                         PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()))
                 .build();
     }
 
-    /** secrets/** DENY 配置（放在管理员全局层） */
+    /** secrets/** DENY 配置 */
     private PermissionConfig denySecretsConfig() {
         return PermissionConfig.builder()
                 .enabled(true)
                 .fileAcl(new PermissionConfig.FileAclConfig(
                         PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
-                        List.of(new PermissionConfig.AclRule("secrets/**", PermissionConfig.Access.DENY, 10)),
-                        PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()))
+                        List.of(new PermissionConfig.AclRule("secrets/**", PermissionConfig.Access.DENY, 10))))
                 .build();
     }
 
-    /** docs/** READ 配置（只读，放在管理员全局层） */
+    /** docs/** READ 配置（只读） */
     private PermissionConfig readDocsConfig() {
         return PermissionConfig.builder()
                 .enabled(true)
                 .fileAcl(new PermissionConfig.FileAclConfig(
                         PermissionConfig.FileAclConfig.Policy.ALLOW_ALL,
-                        List.of(new PermissionConfig.AclRule("docs/**", PermissionConfig.Access.READ, 10)),
-                        PermissionConfig.FileAclConfig.Policy.ALLOW_ALL, List.of()))
+                        List.of(new PermissionConfig.AclRule("docs/**", PermissionConfig.Access.READ, 10))))
                 .build();
     }
 
     @Nested
     @DisplayName("Read 判定")
     class ReadCheck {
+
         @Test
         @DisplayName("allow-all: read 放行并 delegate")
         void readAllowAll() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, allowAllConfig());
             when(delegate.readString("src/Main.java")).thenReturn("content");
+
             assertThat(p.readString("src/Main.java")).isEqualTo("content");
             verify(delegate).readString("src/Main.java");
         }
 
         @Test
-        @DisplayName("DENY 规则: read 被拒，不 delegate")
+        @DisplayName("DENY 规则: read 被拒，不 delegate，抛 PermissionDeniedException")
         void readDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.readString("secrets/key.txt"))
                     .isInstanceOf(PermissionDeniedException.class)
                     .hasMessageContaining("read")
                     .hasMessageContaining("secrets/key.txt");
+
             verify(delegate, never()).readString(anyString());
         }
 
@@ -396,6 +361,7 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName("exists 也受 ACL 判定")
         void existsDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.exists("secrets/key.txt"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).exists(anyString());
@@ -405,6 +371,7 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName("listDirectory 基路径判定")
         void listDirectoryDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.listDirectory("secrets/sub"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).listDirectory(anyString());
@@ -414,6 +381,7 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName("glob 基路径判定")
         void globDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.glob("**", "secrets/sub"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).glob(anyString(), anyString());
@@ -423,11 +391,14 @@ class PermissionEnforcedStorageProviderTest {
     @Nested
     @DisplayName("Write 判定")
     class WriteCheck {
+
         @Test
         @DisplayName("allow-all: write 放行并 delegate")
         void writeAllowAll() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, allowAllConfig());
+
             p.writeString("src/Main.java", "content");
+
             verify(delegate).writeString("src/Main.java", "content");
         }
 
@@ -435,6 +406,7 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName("DENY 规则: write 被拒")
         void writeDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.writeString("secrets/key.txt", "content"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).writeString(anyString(), anyString());
@@ -445,7 +417,10 @@ class PermissionEnforcedStorageProviderTest {
         void readOnlyWriteDenied() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, readDocsConfig());
             when(delegate.readString("docs/policy.md")).thenReturn("content");
+
+            // read 放行
             assertThat(p.readString("docs/policy.md")).isEqualTo("content");
+            // write 被拒
             assertThatThrownBy(() -> p.writeString("docs/policy.md", "new"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).writeString(anyString(), anyString());
@@ -455,24 +430,27 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName("delete 受 write 判定")
         void deleteDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.delete("secrets/key.txt"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).delete(anyString());
         }
 
         @Test
-        @DisplayName("rename: old 不可写即拒")
+        @DisplayName("rename: old 不可写即拒，不 delegate")
         void renameOldDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.rename("secrets/key.txt", "dst.txt"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).rename(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("rename: new 不可写即拒")
+        @DisplayName("rename: new 不可写即拒，不 delegate")
         void renameNewDenied() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             assertThatThrownBy(() -> p.rename("src.txt", "secrets/key.txt"))
                     .isInstanceOf(PermissionDeniedException.class);
             verify(delegate, never()).rename(anyString(), anyString());
@@ -482,7 +460,9 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName("rename: 两路径都可写则 delegate")
         void renameBothAllowed() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, allowAllConfig());
+
             p.rename("a.txt", "b.txt");
+
             verify(delegate).rename("a.txt", "b.txt");
         }
     }
@@ -490,11 +470,15 @@ class PermissionEnforcedStorageProviderTest {
     @Nested
     @DisplayName("内部路径豁免")
     class InternalPathExemption {
+
         @Test
-        @DisplayName(".snapshots/ 路径豁免")
+        @DisplayName(".snapshots/ 路径豁免: 即使有 DENY 规则也放行")
         void snapshotsExempt() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
+            // .snapshots/ 不受 secrets/** DENY 影响（内部路径豁免）
             p.readString(".snapshots/snap1/old.txt");
+
             verify(delegate).readString(".snapshots/snap1/old.txt");
         }
 
@@ -502,7 +486,9 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName(".trash/ 路径豁免")
         void trashExempt() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             p.writeString(".trash/old.txt", "content");
+
             verify(delegate).writeString(".trash/old.txt", "content");
         }
 
@@ -510,7 +496,9 @@ class PermissionEnforcedStorageProviderTest {
         @DisplayName(".shadow/ 路径豁免")
         void shadowExempt() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
             p.readString(".shadow/cache.txt");
+
             verify(delegate).readString(".shadow/cache.txt");
         }
     }
@@ -518,26 +506,33 @@ class PermissionEnforcedStorageProviderTest {
     @Nested
     @DisplayName("无判定方法（直接委托）")
     class NoCheckMethods {
+
         @Test
+        @DisplayName("getSeparator 直接委托")
         void getSeparator() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, allowAllConfig());
             when(delegate.getSeparator()).thenReturn('/');
+
             assertThat(p.getSeparator()).isEqualTo('/');
             verify(delegate).getSeparator();
         }
 
         @Test
+        @DisplayName("isIgnoredPath 直接委托")
         void isIgnoredPath() {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, allowAllConfig());
             when(delegate.isIgnoredPath("path")).thenReturn(true);
+
             assertThat(p.isIgnoredPath("path")).isTrue();
             verify(delegate).isIgnoredPath("path");
         }
 
         @Test
+        @DisplayName("calculateTotalSize 直接委托")
         void calculateTotalSize() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, allowAllConfig());
             when(delegate.calculateTotalSize(List.of("ex"))).thenReturn(500L);
+
             assertThat(p.calculateTotalSize(List.of("ex"))).isEqualTo(500L);
             verify(delegate).calculateTotalSize(List.of("ex"));
         }
@@ -546,14 +541,17 @@ class PermissionEnforcedStorageProviderTest {
     @Nested
     @DisplayName("subDirProvider 路径还原")
     class SubDirProvider {
+
         @Test
         @DisplayName("子装饰器按工作区根相对路径匹配 ACL")
-        void subDirPathPrefix() {
+        void subDirPathPrefix() throws IOException {
             PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
             StorageProvider subDelegate = mock(StorageProvider.class);
             when(delegate.subDirProvider("secrets")).thenReturn(subDelegate);
 
             StorageProvider subProvider = p.subDirProvider("secrets");
+
+            // 子装饰器 readString("key.txt") 应还原为 "secrets/key.txt" 匹配 DENY 规则
             assertThat(subProvider).isInstanceOf(PermissionEnforcedStorageProvider.class);
             assertThatThrownBy(() -> subProvider.readString("key.txt"))
                     .isInstanceOf(PermissionDeniedException.class);
@@ -565,6 +563,7 @@ class PermissionEnforcedStorageProviderTest {
     @DisplayName("PermissionDeniedException 携带 path/op/reason")
     void exceptionCarriesDetails() {
         PermissionEnforcedStorageProvider p = new PermissionEnforcedStorageProvider(delegate, denySecretsConfig());
+
         assertThatThrownBy(() -> p.readString("secrets/key.txt"))
                 .isInstanceOfSatisfying(PermissionDeniedException.class, e -> {
                     assertThat(e.getPath()).isEqualTo("secrets/key.txt");
@@ -592,7 +591,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link PermissionProperties} 单元测试 -- yaml 配置到 PermissionConfig 的转换。
- * 含管理员全局 + 用户自服务 ACL 的 AND 合并。
  */
 @DisplayName("PermissionProperties 配置转换")
 class PermissionPropertiesTest {
@@ -602,7 +600,9 @@ class PermissionPropertiesTest {
     void disabledWhenNotEnabled() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(false);
+
         PermissionConfig config = props.toPermissionConfig("openclaw-code-assistant-alice");
+
         assertThat(config.enabled()).isFalse();
     }
 
@@ -613,23 +613,30 @@ class PermissionPropertiesTest {
         props.setEnabled(true);
         props.setUserRoles(Map.of(
                 "openclaw-code-assistant-readonly", Set.of("write", "edit", "trash")));
+
         PermissionConfig config = props.toPermissionConfig("openclaw-code-assistant-readonly");
+
         assertThat(config.enabled()).isTrue();
         assertThat(config.toolPermission().isAllowed("read")).isTrue();
+        assertThat(config.toolPermission().isAllowed("glob")).isTrue();
         assertThat(config.toolPermission().isAllowed("write")).isFalse();
         assertThat(config.toolPermission().isAllowed("edit")).isFalse();
         assertThat(config.toolPermission().isAllowed("trash")).isFalse();
     }
 
     @Test
-    @DisplayName("enabled=true + 身份未配置: 全部工具放行")
+    @DisplayName("enabled=true + 身份未配置: deniedTools 为空，全部工具放行")
     void unconfiguredIdentityAllAllowed() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
-        props.setUserRoles(Map.of("openclaw-code-assistant-readonly", Set.of("write")));
+        props.setUserRoles(Map.of(
+                "openclaw-code-assistant-readonly", Set.of("write")));
+
         PermissionConfig config = props.toPermissionConfig("hermes-research-charlie");
+
         assertThat(config.toolPermission().isAllowed("write")).isTrue();
         assertThat(config.toolPermission().isAllowed("read")).isTrue();
+        assertThat(config.toolPermission().isAllowed("edit")).isTrue();
     }
 
     @Test
@@ -637,97 +644,62 @@ class PermissionPropertiesTest {
     void denyAllTools() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
-        props.setUserRoles(Map.of("openclaw-code-assistant-blocked", Set.of("*")));
+        props.setUserRoles(Map.of(
+                "openclaw-code-assistant-blocked", Set.of("*")));
+
         PermissionConfig config = props.toPermissionConfig("openclaw-code-assistant-blocked");
+
         assertThat(config.toolPermission().isAllowed("read")).isFalse();
+        assertThat(config.toolPermission().isAllowed("write")).isFalse();
         assertThat(config.toolPermission().isAllowed("any-tool")).isFalse();
     }
 
     @Test
-    @DisplayName("管理员全局 ACL 规则转换")
-    void adminAclRulesConversion() {
+    @DisplayName("文件 ACL 规则转换: pattern + access + priority")
+    void fileAclRulesConversion() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
         PermissionProperties.AclRuleProperties r1 = new PermissionProperties.AclRuleProperties();
         r1.setPattern("secrets/**");
         r1.setAccess(PermissionConfig.Access.DENY);
         r1.setPriority(10);
-        props.setFileAclRules(List.of(r1));
+        PermissionProperties.AclRuleProperties r2 = new PermissionProperties.AclRuleProperties();
+        r2.setPattern("**/*.env");
+        r2.setAccess(PermissionConfig.Access.DENY);
+        r2.setPriority(100);
+        props.setFileAclRules(List.of(r1, r2));
+
         PermissionConfig config = props.toPermissionConfig("any-user");
-        assertThat(config.fileAcl().adminRules()).hasSize(1);
-        assertThat(config.fileAcl().adminRules().get(0).pattern()).isEqualTo("secrets/**");
-        assertThat(config.fileAcl().userRules()).isEmpty();
+
+        assertThat(config.fileAcl().rules()).hasSize(2);
+        assertThat(config.fileAcl().rules().get(0).pattern()).isEqualTo("secrets/**");
+        assertThat(config.fileAcl().rules().get(0).access()).isEqualTo(PermissionConfig.Access.DENY);
+        assertThat(config.fileAcl().rules().get(0).priority()).isEqualTo(10);
+        assertThat(config.fileAcl().rules().get(1).pattern()).isEqualTo("**/*.env");
+        assertThat(config.fileAcl().rules().get(1).priority()).isEqualTo(100);
     }
 
     @Test
-    @DisplayName("用户自服务 ACL 规则: 按 identity 取出")
-    void userAclRulesPerIdentity() {
+    @DisplayName("default-acl-policy=deny-all: 无匹配规则拒绝")
+    void denyAllAclPolicy() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
-        PermissionProperties.AclRuleProperties aliceRule = new PermissionProperties.AclRuleProperties();
-        aliceRule.setPattern("docs/secret/**");
-        aliceRule.setAccess(PermissionConfig.Access.DENY);
-        aliceRule.setPriority(20);
-        props.setUserFileAcls(Map.of("openclaw-code-assistant-alice", List.of(aliceRule)));
+        props.setDefaultAclPolicy(PermissionProperties.Policy.DENY_ALL);
 
-        PermissionConfig aliceConfig = props.toPermissionConfig("openclaw-code-assistant-alice");
-        assertThat(aliceConfig.fileAcl().userRules()).hasSize(1);
-        assertThat(aliceConfig.fileAcl().userRules().get(0).pattern()).isEqualTo("docs/secret/**");
-
-        PermissionConfig bobConfig = props.toPermissionConfig("openclaw-code-assistant-bob");
-        assertThat(bobConfig.fileAcl().userRules()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("管理员 + 用户规则同时存在: 两层都注入")
-    void bothAclRulesInjected() {
-        PermissionProperties props = new PermissionProperties();
-        props.setEnabled(true);
-        PermissionProperties.AclRuleProperties adminRule = new PermissionProperties.AclRuleProperties();
-        adminRule.setPattern("secrets/**");
-        adminRule.setAccess(PermissionConfig.Access.DENY);
-        adminRule.setPriority(10);
-        props.setFileAclRules(List.of(adminRule));
-
-        PermissionProperties.AclRuleProperties userRule = new PermissionProperties.AclRuleProperties();
-        userRule.setPattern("docs/secret/**");
-        userRule.setAccess(PermissionConfig.Access.DENY);
-        userRule.setPriority(20);
-        props.setUserFileAcls(Map.of("openclaw-code-assistant-alice", List.of(userRule)));
-
-        PermissionConfig config = props.toPermissionConfig("openclaw-code-assistant-alice");
-        assertThat(config.fileAcl().adminRules()).hasSize(1);
-        assertThat(config.fileAcl().userRules()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("admin-acl-default-policy=deny-all")
-    void adminDenyAllPolicy() {
-        PermissionProperties props = new PermissionProperties();
-        props.setEnabled(true);
-        props.setAdminAclDefaultPolicy(PermissionProperties.Policy.DENY_ALL);
         PermissionConfig config = props.toPermissionConfig("any-user");
-        assertThat(config.fileAcl().adminDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.DENY_ALL);
+
+        assertThat(config.fileAcl().defaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.DENY_ALL);
     }
 
     @Test
-    @DisplayName("user-acl-default-policy=deny-all")
-    void userDenyAllPolicy() {
+    @DisplayName("default-acl-policy=allow-all（默认）: 无匹配规则放行")
+    void allowAllAclPolicyDefault() {
         PermissionProperties props = new PermissionProperties();
         props.setEnabled(true);
-        props.setUserAclDefaultPolicy(PermissionProperties.Policy.DENY_ALL);
-        PermissionConfig config = props.toPermissionConfig("any-user");
-        assertThat(config.fileAcl().userDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.DENY_ALL);
-    }
 
-    @Test
-    @DisplayName("默认: admin/user 都 allow-all")
-    void defaultPoliciesAllowAll() {
-        PermissionProperties props = new PermissionProperties();
-        props.setEnabled(true);
         PermissionConfig config = props.toPermissionConfig("any-user");
-        assertThat(config.fileAcl().adminDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL);
-        assertThat(config.fileAcl().userDefaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL);
+
+        assertThat(config.fileAcl().defaultPolicy()).isEqualTo(PermissionConfig.FileAclConfig.Policy.ALLOW_ALL);
     }
 
     @Test
@@ -748,42 +720,43 @@ class PermissionPropertiesTest {
 
 | 分类 | 覆盖点 |
 |---|---|
-| 单层判定 | allow-all/deny-all、`*`/`**` glob、priority 优先、deny-wins、WRITE 隐含 READ、READ 只读 |
-| **AND 合并** | 管理员 DENY 不可被用户放宽、用户可更严、用户不能放宽到写、用户可收紧、双方 WRITE、用户自服务 DENY、管理员 deny-all 兜底 |
-| 路径规范化 | 前导 `/`/`./`/多余斜杠、null |
-| findMatchingRule | 管理员优先、用户回退、无匹配 null |
-| 校验 | pattern/access 非空 |
+| 默认策略 | allow-all 放行、deny-all 拒绝 |
+| glob 匹配 | `*` 单段不跨段、`**` 跨段、`secrets/**` 递归 |
+| priority | 更具体(高 priority)覆盖更宽、同级 deny-wins(DENY>WRITE>READ)、同级 WRITE 胜 READ |
+| access 语义 | WRITE 隐含 READ、READ 只读不可写、DENY 全拒 |
+| 路径规范化 | 去前导 `/`、`./`、多余斜杠、null 不抛异常 |
+| findMatchingRule | 返回 priority 最大规则、无匹配返回 null |
+| AclRule 校验 | pattern 空/blank 抛异常、access null 抛异常 |
 
 ### PermissionEnforcedStorageProviderTest（装饰器）
 
 | 分类 | 覆盖点 |
 |---|---|
-| Read | allow-all 放行、DENY 拒绝、exists/listDirectory/glob 基路径判定 |
-| Write | allow-all、DENY、READ 路径 write 拒、delete、rename old/new 任一不可写即拒 |
-| 内部路径豁免 | .snapshots/.trash/.shadow |
-| 无判定方法 | getSeparator/isIgnoredPath/calculateTotalSize |
-| subDirProvider | pathPrefix 还原 |
-| 异常 | 携带 path/op/reason |
+| Read 判定 | allow-all 放行 delegate、DENY 拒绝不 delegate、exists/listDirectory/glob 基路径判定 |
+| Write 判定 | allow-all 放行、DENY 拒绝、READ 路径 read 放行 write 拒、delete 受 write 判定、rename old/new 任一不可写即拒、两路径都可写则 delegate |
+| 内部路径豁免 | `.snapshots/`/`.trash/`/`.shadow/` 即使有 DENY 规则也放行 |
+| 无判定方法 | getSeparator/isIgnoredPath/calculateTotalSize 直接委托 |
+| subDirProvider | 子装饰器按 pathPrefix 还原到工作区根相对路径匹配 ACL |
+| 异常详情 | PermissionDeniedException 携带 path/op/reason |
 
 ### PermissionPropertiesTest（配置转换）
 
 | 分类 | 覆盖点 |
 |---|---|
-| 工具权限 | enabled 开关、黑名单匹配、未配置全放行、`*` 全禁 |
-| 管理员 ACL | 规则转换 |
-| 用户 ACL | per-identity 取出、未配置身份空 |
-| 双层 | 两层同时注入 |
-| default-policy | admin/user 各自 allow-all/deny-all |
-| 默认值 | AclRuleProperties 默认 |
+| enabled 开关 | false 返回 disabled |
+| 工具权限黑名单 | 身份匹配取 deniedTools、未配置身份全放行、`*` 全禁 |
+| 文件 ACL 转换 | pattern/access/priority 正确转换 |
+| default-policy | allow-all(默认)/deny-all |
+| 默认值 | AclRuleProperties 默认 access=DENY priority=10 |
 
 ---
 
 ## 五、复刻步骤
 
-1. 修复 `permission/FileAclMatcher.java`：按「二」新增 `import java.util.ArrayList;`，构造器 adminRules/userRules 各拷贝为 `new ArrayList<>(...)`
-2. 在 `src/test/java/io/github/springai/harness/permission/` 下创建 `FileAclMatcherTest.java` 和 `PermissionEnforcedStorageProviderTest.java`
+1. 修复 `permission/FileAclMatcher.java`：按本文「二」新增 `import java.util.ArrayList;`，构造器改 `this.rules = new ArrayList<>(fileAcl.rules());`
+2. 在 `src/test/java/io/github/springai/harness/permission/` 下创建 `FileAclMatcherTest.java` 和 `PermissionEnforcedStorageProviderTest.java`（按本文「三」源码）
 3. 在 `src/test/java/io/github/springai/harness/autoconfig/` 下创建 `PermissionPropertiesTest.java`
-4. 运行：`./mvnw test -pl spring-ai-harness-mcp-server -Dtest=FileAclMatcherTest,PermissionEnforcedStorageProviderTest,PermissionPropertiesTest`
+4. 运行测试：`./mvnw test -pl spring-ai-harness-mcp-server -Dtest=FileAclMatcherTest,PermissionEnforcedStorageProviderTest,PermissionPropertiesTest`
 5. 预期：全部通过
 
 ---
@@ -792,8 +765,8 @@ class PermissionPropertiesTest {
 
 | 项目 | 说明 |
 |---|---|
-| 测试依赖 | JUnit 5 + Mockito + AssertJ（已有，无新增） |
-| Java 版本 | 17+ |
-| mock 策略 | 全 Mockito mock，不连真 OSS |
-| 覆盖率 | 核心逻辑 80%+ |
-| bug 修复影响 | FileAclMatcher 不可变 List 修复无回归风险 |
+| 测试依赖 | JUnit 5 + Mockito + AssertJ（mcp-server 已有，无新增） |
+| Java 版本 | 17+（record / switch 表达式 / `var`） |
+| mock 策略 | 全 Mockito mock `StorageProvider` delegate，不连真 OSS，符合 AGENTS.md |
+| 覆盖率目标 | 核心逻辑（FileAclMatcher + 装饰器判定）80%+ 行/分支覆盖 |
+| bug 修复影响 | FileAclMatcher 不可变 List 修复对既有行为无影响（仅修正 sort 失败），无回归风险 |
