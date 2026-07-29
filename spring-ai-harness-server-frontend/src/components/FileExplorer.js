@@ -241,7 +241,11 @@ export const FileExplorer = () => {
               >
                 Up
               </Button>
-              <Breadcrumb items={breadcrumbItems} />
+              <Breadcrumb>
+                {breadcrumbItems.map((it, i) => (
+                  <Breadcrumb.Item key={i}>{it.title}</Breadcrumb.Item>
+                ))}
+              </Breadcrumb>
             </Space>
 
             <Space size="middle">
@@ -355,7 +359,7 @@ export const FileExplorer = () => {
       {/* Rename Modal */}
       <Modal
         title="Rename / Move Item"
-        open={renameModalVisible}
+        visible={renameModalVisible}
         onOk={handleRenameSubmit}
         onCancel={() => setRenameModalVisible(false)}
         okText="Save"

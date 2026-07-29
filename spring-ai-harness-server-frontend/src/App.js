@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ConfigProvider, theme, Layout, Button } from 'antd';
+import { ConfigProvider, Layout, Button } from 'antd';
 import { FileExplorer } from './components/FileExplorer';
 import { McpDebugger } from './components/McpDebugger';
-import { FolderOpenOutlined, BugOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons';
+import QuotaConsole from './components/QuotaConsole';
+import AuditConsole from './components/AuditConsole';
+import {
+  FolderOpenOutlined,
+  BugOutlined,
+  DatabaseOutlined,
+  AuditOutlined,
+  SunOutlined,
+  MoonOutlined
+} from '@ant-design/icons';
+import './styles/console-light.css';
 
 const { Content } = Layout;
 
@@ -22,19 +32,22 @@ function App() {
     document.documentElement.setAttribute('data-theme', themeMode);
   }, [themeMode]);
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'mcp':
+        return <McpDebugger />;
+      case 'quota':
+        return <QuotaConsole />;
+      case 'audit':
+        return <AuditConsole />;
+      case 'files':
+      default:
+        return <FileExplorer />;
+    }
+  };
+
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#3b82f6',
-          borderRadius: 8,
-          colorBgContainer: themeMode === 'dark' ? '#1e293b' : '#ffffff',
-          colorBgElevated: themeMode === 'dark' ? '#1e293b' : '#ffffff',
-          colorBorder: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'
-        }
-      }}
-    >
+    <ConfigProvider>
       <Layout style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
         {/* Sticky Global Navigation Bar */}
         <div style={{
@@ -78,6 +91,30 @@ function App() {
               >
                 MCP Client Debugger
               </Button>
+              <Button
+                type={activeTab === 'quota' ? 'primary' : 'text'}
+                icon={<DatabaseOutlined />}
+                onClick={() => setActiveTab('quota')}
+                style={{
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  color: activeTab === 'quota' ? undefined : 'var(--text-secondary)'
+                }}
+              >
+                配额管理
+              </Button>
+              <Button
+                type={activeTab === 'audit' ? 'primary' : 'text'}
+                icon={<AuditOutlined />}
+                onClick={() => setActiveTab('audit')}
+                style={{
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  color: activeTab === 'audit' ? undefined : 'var(--text-secondary)'
+                }}
+              >
+                日志审计
+              </Button>
             </div>
           </div>
           {/* Theme Toggle Button */}
@@ -93,7 +130,7 @@ function App() {
 
         {/* Active Workspace/Debugger View */}
         <Content style={{ minHeight: 'calc(100vh - 57px)' }}>
-          {activeTab === 'files' ? <FileExplorer /> : <McpDebugger />}
+          {renderContent()}
         </Content>
       </Layout>
     </ConfigProvider>

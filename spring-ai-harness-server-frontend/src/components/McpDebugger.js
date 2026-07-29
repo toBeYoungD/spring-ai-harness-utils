@@ -485,7 +485,11 @@ export const McpDebugger = () => {
               className="glass-container"
               style={{ minHeight: 650, borderColor: 'var(--border-color)' }}
             >
-              <Tabs items={tabItems} defaultActiveKey="tools" />
+              <Tabs defaultActiveKey="tools">
+                {tabItems.map(t => (
+                  <Tabs.TabPane key={t.key} tab={t.label}>{t.children}</Tabs.TabPane>
+                ))}
+              </Tabs>
             </Card>
 
             {/* Right Card: JSON-RPC Wire Inspector */}

@@ -109,7 +109,7 @@ export const SnapshotDrawer = ({ visible, filePath, authHeader, onClose, onRewin
       placement="right"
       width={780}
       onClose={onClose}
-      open={visible}
+      visible={visible}
       extra={
         <Button icon={<ReloadOutlined />} onClick={fetchSnapshots} loading={loading}>
           Refresh

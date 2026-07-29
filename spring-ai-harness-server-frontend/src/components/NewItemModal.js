@@ -35,7 +35,7 @@ export const NewItemModal = ({ visible, onCancel, onCreate, currentPath }) => {
   return (
     <Modal
       title="Create New Item"
-      open={visible}
+      visible={visible}
       onOk={handleOk}
       onCancel={onCancel}
       confirmLoading={loading}

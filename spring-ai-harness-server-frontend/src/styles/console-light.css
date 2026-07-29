@@ -1,0 +1,154 @@
+/* console-light.css
+ * 配额/审计控制台亮色主题（移植自 .claude/preview 原型 <style> 并集）。
+ *
+ * 隔离策略（与既有暗色 index.css 共存）：
+ * - CSS 变量挂在 .console-light / .console-modal / .console-drawer 三处（页面根 + antd
+ *   Modal/Drawer portal 到 body 外，className 落在 .ant-modal/.ant-drawer 根上，变量由此
+ *   级联到弹窗内部）。变量名与 index.css 的 --bg-primary 等无冲突，不污染全局 :root。
+ * - 自定义类（.stat-card/.section-label/.json-block/...）保持全局：名字与 index.css 不撞，
+ *   且能在 portal 弹窗内命中。
+ * - antd 表格/分页覆盖一律加 .console-light 前缀 + !important，用高特异性压过 index.css
+ *   的全局暗色 .ant-table/.ant-pagination 覆盖，避免污染既有暗色组件。
+ * - 弹窗容器（.ant-modal-content/.ant-drawer-content）由 .console-modal/.console-drawer 覆盖。
+ * 主题统一留待后续讨论。
+ */
+
+.console-light, .console-modal, .console-drawer {
+  --bg:#ffffff; --surface:#ffffff;
+  --primary:#1890ff; --primary-hover:#40a9ff; --primary-active:#096dd9;
+  --primary-bg:#e6f7ff; --primary-border:#91d5ff; --primary-border-soft:rgba(24,144,255,0.22);
+  --border:#eef2f7; --border-strong:#e8e8e8;
+  --text:#1f1f1f; --text-2:#595959; --text-3:#8c8c8c;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.04);
+  --shadow-hover:0 6px 16px rgba(24,144,255,0.10),0 2px 6px rgba(0,0,0,0.04);
+  --radius:12px; --radius-sm:8px;
+  color: var(--text);
+}
+
+/* 页面容器：亮色底、居中、留白（对齐原型 #root） */
+.console-light {
+  max-width:1280px; margin:0 auto; padding:16px 24px 48px;
+  background:var(--bg);
+  font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.console-light *{box-sizing:border-box;}
+.console-light code, .console-modal code, .console-drawer code {
+  font-family:"SF Mono","JetBrains Mono","Fira Code",Consolas,monospace;
+}
+
+/* Page header */
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin:4px 2px 20px;gap:12px;flex-wrap:wrap;}
+.page-head h2{margin:0;font-size:20px;font-weight:600;color:var(--text);}
+.page-head .sub{color:var(--text-3);font-size:13px;margin-top:5px;}
+
+/* Stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--primary-border-soft);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow-sm);transition:border-color .2s,box-shadow .2s,transform .2s;}
+.stat-card:hover{border-color:var(--primary-border);box-shadow:var(--shadow-hover);transform:translateY(-1px);}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.stat-label{color:var(--text-3);font-size:13px;font-weight:500;}
+.stat-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.stat-icon[data-tone="blue"]{background:var(--primary-bg);color:var(--primary);}
+.stat-icon[data-tone="warn"]{background:#fff7e6;color:#faad14;}
+.stat-icon[data-tone="over"]{background:#fff1f0;color:#ff4d4f;}
+.stat-icon[data-tone="green"]{background:#f6ffed;color:#52c41a;}
+.stat-icon[data-tone="purple"]{background:#f9f0ff;color:#722ed1;}
+.stat-value{font-size:26px;font-weight:600;color:var(--text);line-height:1.15;letter-spacing:-.01em;}
+.stat-value.tone-warn{color:#faad14;}
+.stat-value.tone-over{color:#ff4d4f;}
+.stat-value.tone-green{color:#52c41a;}
+.stat-value.tone-purple{color:#722ed1;}
+.stat-sub{color:var(--text-3);font-size:12px;margin-top:6px;}
+
+.glass{background:var(--surface);border:1px solid var(--primary-border-soft);border-radius:var(--radius);box-shadow:var(--shadow-sm);}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+
+/* Table —— 全部 !important 压过 index.css 全局暗色 .ant-table 覆盖 */
+.console-light .ant-table { background:transparent !important; color:var(--text) !important; }
+.console-light .harness-table .ant-table-thead > tr > th {
+  background:#fafbfc !important; color:var(--text-3) !important; font-weight:500 !important; font-size:12px !important;
+  border-bottom:1px solid var(--border) !important;
+}
+.console-light .harness-table .ant-table-tbody > tr > td {
+  border-bottom:1px solid var(--border) !important; color:var(--text) !important;
+}
+.console-light .harness-table .ant-table-tbody > tr { transition:background .15s; }
+.console-light .harness-table .ant-table-tbody > tr:hover > td { background:var(--primary-bg) !important; }
+.console-light .ant-table-wrapper { background:transparent !important; }
+.ws-cell{display:flex;flex-direction:column;gap:2px;}
+.ws-id{color:var(--primary);font-weight:500;}
+.ws-sub{color:var(--text-3);font-size:12px;}
+
+/* Status pill */
+.status-pill{display:inline-flex;align-items:center;gap:7px;padding:3px 11px 3px 9px;border-radius:20px;
+  font-size:12px;font-weight:600;border:1px solid;line-height:1.6;white-space:nowrap;}
+.status-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--dot);}
+.status-pill.is-normal{--dot:#52c41a;background:#f6ffed;border-color:#b7eb8f;color:#389e0d;}
+.status-pill.is-warn{--dot:#faad14;--ring:rgba(250,173,20,0.5);background:#fff7e6;border-color:#ffd591;color:#d48806;}
+.status-pill.is-over{--dot:#ff4d4f;--ring:rgba(255,77,79,0.5);background:#fff1f0;border-color:#ffa39e;color:#cf1322;}
+.status-pill.is-info{--dot:#1890ff;background:#e6f7ff;border-color:#91d5ff;color:#096dd9;}
+.status-pill.is-warn .dot,.status-pill.is-over .dot{animation:consolePulse 1.6s ease-in-out infinite;}
+@keyframes consolePulse{0%,100%{box-shadow:0 0 0 0 var(--ring);}50%{box-shadow:0 0 0 5px transparent;}}
+
+/* Category tag */
+.cat-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;}
+.cat-tag.file{background:#e6f7ff;color:#096dd9;border:1px solid #91d5ff;}
+.cat-tag.skill{background:#f9f0ff;color:#722ed1;border:1px solid #d3adf7;}
+.cat-tag.relay{background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f;}
+
+/* Row action buttons */
+.row-actions{display:inline-flex;align-items:center;gap:2px;}
+.row-actions .ant-btn-text{color:var(--text-2);border-radius:6px;}
+.row-actions .ant-btn-text:hover{color:var(--primary);background:var(--primary-bg) !important;}
+.row-actions .ant-btn-text:active{background:rgba(24,144,255,0.16) !important;}
+
+/* Pagination polish —— .console-light 前缀避免污染既有暗色组件分页 */
+.console-light .harness-table .ant-table-pagination{margin:0 !important;padding:14px 16px;border-top:1px solid var(--border);}
+.console-light .ant-pagination{display:flex;align-items:center;flex-wrap:wrap;}
+.console-light .ant-pagination-total-text{color:var(--text-3);font-size:13px;margin-right:auto !important;}
+.console-light .ant-pagination-item,.console-light .ant-pagination-prev,.console-light .ant-pagination-next{margin-right:6px !important;}
+.console-light .ant-pagination-item,
+.console-light .ant-pagination-prev .ant-pagination-item-link,
+.console-light .ant-pagination-next .ant-pagination-item-link{
+  min-width:30px !important;height:30px !important;line-height:28px;border-radius:8px !important;
+  border:1px solid var(--border-strong) !important;background:#fff !important;
+  display:inline-flex;align-items:center;justify-content:center;transition:all .18s;
+}
+.console-light .ant-pagination-item a{color:var(--text-2);}
+.console-light .ant-pagination-item:hover{border-color:var(--primary) !important;}
+.console-light .ant-pagination-item:hover a{color:var(--primary);}
+.console-light .ant-pagination-prev:hover .ant-pagination-item-link,
+.console-light .ant-pagination-next:hover .ant-pagination-item-link{border-color:var(--primary) !important;color:var(--primary);}
+.console-light .ant-pagination-item-active{background:var(--primary) !important;border-color:var(--primary) !important;box-shadow:0 2px 6px rgba(24,144,255,0.3);}
+.console-light .ant-pagination-item-active a{color:#fff !important;}
+.console-light .ant-pagination-disabled .ant-pagination-item-link{background:#fafbfc !important;border-color:var(--border) !important;color:var(--text-3) !important;cursor:not-allowed;}
+
+/* Drawer / Modal polish —— 弹窗容器由 .console-modal/.console-drawer 覆盖回亮色 */
+.section-label{color:var(--text-3);font-size:12px;margin-bottom:8px;font-weight:500;}
+.prefix-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:6px;
+  background:var(--primary-bg);color:var(--primary);font-size:13px;border:1px solid var(--primary-border-soft);}
+.help-text{color:var(--text-3);font-size:12px;display:flex;align-items:center;gap:6px;margin-top:12px;}
+.kv{color:var(--text-2);}
+.kv b{color:var(--text);font-weight:600;}
+.drawer-section{margin-bottom:18px;}
+.json-block{background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;max-height:220px;overflow:auto;font-size:12px;margin:0;
+  font-family:"SF Mono","JetBrains Mono","Fira Code",Consolas,monospace;white-space:pre-wrap;word-break:break-all;}
+
+/* Modal 容器（portal 到 body，靠 className="console-modal" 落到 .ant-modal 根） */
+.console-modal .ant-modal-content { background-color:#fff !important; color:var(--text) !important; border:1px solid var(--border) !important; }
+.console-modal .ant-modal-header { background-color:#fff !important; border-bottom:1px solid var(--border) !important; }
+.console-modal .ant-modal-title { color:var(--text) !important; }
+.console-modal .ant-modal-close-icon { color:var(--text-3) !important; }
+
+/* Drawer 容器（portal 到 body，靠 className="console-drawer" 落到 .ant-drawer 根） */
+.console-drawer .ant-drawer-content { background-color:#fff !important; color:var(--text) !important; }
+.console-drawer .ant-drawer-header { background-color:#fff !important; border-bottom:1px solid var(--border) !important; }
+.console-drawer .ant-drawer-title { color:var(--text) !important; }
+.console-drawer .ant-drawer-close-icon { color:var(--text-3) !important; }
+
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px;}
+@media (prefers-reduced-motion: reduce){.console-light *{transition:none !important;animation:none !important;}}
+@media (max-width:1024px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){.stat-grid{grid-template-columns:1fr;}}

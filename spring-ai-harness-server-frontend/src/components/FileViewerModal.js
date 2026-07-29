@@ -53,7 +53,7 @@ export const FileViewerModal = ({ visible, filePath, authHeader, onClose, onOpen
       placement="right"
       width={720}
       onClose={onClose}
-      open={visible}
+      visible={visible}
       extra={
         <Space>
           <Button icon={<HistoryOutlined />} onClick={() => onOpenSnapshots(filePath)}>
