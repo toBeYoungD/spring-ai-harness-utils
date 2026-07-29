@@ -1,6 +1,6 @@
 # 文件系统 MCP 工具权限隔离 — 开发方案
 
-> **面向读者**：熟悉本仓库 mcp-server 模块的开发人员。阅读前建议先了解 [安全体系技术方案](spring-ai-harness-安全体系技术方案(正式版).md) 的五层纵深防御模型。
+> **面向读者**：熟悉本仓库 mcp-server 模块的开发人员。阅读前建议先了解 [安全体系技术方案](../../技术方案/spring-ai-harness-安全体系技术方案(正式版).md) 的五层纵深防御模型。
 >
 > **状态**：方案待评审。两个待确认事项见文末「待确认事项」。
 
@@ -339,4 +339,4 @@ base(AliyunOssStorage) → [quota if enabled] → [observed if enabled] → [per
 - 装配：`.../autoconfig/{HarnessMcpServerAutoConfiguration,HarnessMcpServerProperties}.java`
 - 异常出口：`.../controller/GlobalRestExceptionHandler.java`
 - 配置：`spring-ai-harness-mcp-server/src/main/resources/application.properties`
-- 安全体系背景：[spring-ai-harness-安全体系技术方案(正式版).md](spring-ai-harness-安全体系技术方案(正式版).md)
+- 安全体系背景：[spring-ai-harness-安全体系技术方案(正式版).md](../../技术方案/spring-ai-harness-安全体系技术方案(正式版).md)
