@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="总体框架图">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== 左侧：AI 智能体客户端 ==================== -->
+        <mxCell id="client-box" value="AI 智能体客户端" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="220" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="openclaw" value="OpenClaw&#xa;(TypeScript)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="client-box">
+          <mxGeometry x="40" y="50" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="hermes" value="Hermes&#xa;(Python)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="client-box">
+          <mxGeometry x="40" y="120" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="qwenpaw" value="QwenPaw&#xa;(Java / Spring AI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="client-box">
+          <mxGeometry x="40" y="190" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="other-agent" value="其他智能体 ..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontSize=9;" vertex="1" parent="client-box">
+          <mxGeometry x="55" y="250" width="110" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- 禁用的内置工具 -->
+        <mxCell id="disabled-box" value="禁用内置文件工具" style="swimlane;startSize=25;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="disabled-tools" value="原生 fs / child_process / ...&#xa;全部禁用，统一走 MCP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="disabled-box">
+          <mxGeometry x="20" y="30" width="180" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 中间：MCP Server 核心大框 ==================== -->
+        <mxCell id="mcp-server" value="Spring AI Harness MCP Server" style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="340" y="40" width="680" height="660" as="geometry"/>
+        </mxCell>
+
+        <!-- 接入层 -->
+        <mxCell id="access-layer" value="接入层" style="swimlane;startSize=25;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="mcp-server">
+          <mxGeometry x="20" y="40" width="640" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp-endpoint" value="POST /mcp&#xa;(Streamable HTTP)&#xa;Stateless JSON-RPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="access-layer">
+          <mxGeometry x="20" y="30" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="rest-endpoint" value="REST API&#xa;/api/v1/workspace&#xa;/api/v1/admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="access-layer">
+          <mxGeometry x="230" y="30" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="attach-endpoint" value="Attachment&#xa;/api/v1/workspace/&#xa;attachments" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="access-layer">
+          <mxGeometry x="440" y="30" width="180" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- 工具层 - 文件管理安全体系 -->
+        <mxCell id="static-safety" value="文件管理安全体系（静态安全）" style="swimlane;startSize=22;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="mcp-server">
+          <mxGeometry x="20" y="140" width="640" height="240" as="geometry"/>
+        </mxCell>
+
+        <!-- 文件读写 -->
+        <mxCell id="mod-rw" value="文件读写" style="swimlane;startSize=16;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" vertex="1" parent="static-safety">
+          <mxGeometry x="10" y="28" width="380" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-read" value="读取 (Read)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-rw">
+          <mxGeometry x="8" y="18" width="115" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-write" value="写入 (Write)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-rw">
+          <mxGeometry x="131" y="18" width="115" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-edit" value="编辑 (Edit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-rw">
+          <mxGeometry x="254" y="18" width="118" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- 文件检索 -->
+        <mxCell id="mod-search" value="文件检索" style="swimlane;startSize=16;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" vertex="1" parent="static-safety">
+          <mxGeometry x="10" y="71" width="380" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-glob" value="模式匹配 (Glob)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-search">
+          <mxGeometry x="8" y="18" width="175" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-grep" value="内容搜索 (Grep)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-search">
+          <mxGeometry x="197" y="18" width="175" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- 目录与回收 -->
+        <mxCell id="mod-dir" value="目录与回收" style="swimlane;startSize=16;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" vertex="1" parent="static-safety">
+          <mxGeometry x="10" y="114" width="380" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-ls" value="列目录 (ListDirectory)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-dir">
+          <mxGeometry x="8" y="18" width="175" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-trash" value="回收站 (Trash)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-dir">
+          <mxGeometry x="197" y="18" width="175" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- 版本管理 -->
+        <mxCell id="mod-version" value="版本管理" style="swimlane;startSize=16;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" vertex="1" parent="static-safety">
+          <mxGeometry x="10" y="157" width="380" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-snap" value="快照列表 (ListSnapshots)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-version">
+          <mxGeometry x="8" y="18" width="175" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-rewind" value="回滚 (Rewind)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-version">
+          <mxGeometry x="197" y="18" width="175" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- 文件分享 -->
+        <mxCell id="mod-share" value="文件分享" style="swimlane;startSize=16;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" vertex="1" parent="static-safety">
+          <mxGeometry x="10" y="200" width="380" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-send" value="生成下载链接 (SendFileToUser)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="mod-share">
+          <mxGeometry x="8" y="18" width="360" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- 技能工具 -->
+        <mxCell id="skill-tools" value="技能工具 (SkillTools)" style="swimlane;startSize=22;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1;" vertex="1" parent="static-safety">
+          <mxGeometry x="400" y="28" width="230" height="212" as="geometry"/>
+        </mxCell>
+        <mxCell id="sk-list" value="技能列表 (ListSkills)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="skill-tools">
+          <mxGeometry x="10" y="30" width="210" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="sk-read" value="读取技能 (ReadSkill)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="skill-tools">
+          <mxGeometry x="10" y="66" width="210" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="sk-res1" value="skill://list (Resource)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="skill-tools">
+          <mxGeometry x="10" y="102" width="210" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="sk-res2" value="skill://{name} (Resource)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=9;" vertex="1" parent="skill-tools">
+          <mxGeometry x="10" y="138" width="210" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="sk-note" value="双协议暴露：Tool + Resource" style="text;html=1;fontSize=9;fontColor=#666666;" vertex="1" parent="skill-tools">
+          <mxGeometry x="10" y="174" width="210" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- 中继工具 - 沙箱执行安全体系 -->
+        <mxCell id="dynamic-safety" value="沙箱执行安全体系（动态安全）" style="swimlane;startSize=22;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontColor=#333333;" vertex="1" parent="mcp-server">
+          <mxGeometry x="20" y="400" width="640" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="relay-tools" value="RelayTools (@McpTool, 可配置开关)" style="swimlane;startSize=22;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="dynamic-safety">
+          <mxGeometry x="10" y="28" width="620" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="rt-browser" value="浏览器工具 (browser_*，24个)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="relay-tools">
+          <mxGeometry x="8" y="28" width="170" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="rt-computer" value="桌面控制 (computer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="relay-tools">
+          <mxGeometry x="186" y="28" width="85" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="rt-shell" value="Shell 命令 (run_shell_command)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="relay-tools">
+          <mxGeometry x="279" y="28" width="130" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="rt-ipython" value="Python 执行 (run_ipython_cell)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="relay-tools">
+          <mxGeometry x="417" y="28" width="120" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="rt-more" value="..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="relay-tools">
+          <mxGeometry x="545" y="28" width="40" height="28" as="geometry"/>
+        </mxCell>
+
+        <!-- 存储层 -->
+        <mxCell id="storage-layer" value="存储层" style="swimlane;startSize=22;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="mcp-server">
+          <mxGeometry x="20" y="520" width="260" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="storage-iface" value="StorageProvider (接口)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="storage-layer">
+          <mxGeometry x="10" y="28" width="240" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="storage-oss" value="AliyunOssStorage (实现)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="storage-layer">
+          <mxGeometry x="10" y="58" width="240" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="storage-fcp" value="FileContentProcessor (流式处理)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="storage-layer">
+          <mxGeometry x="10" y="88" width="240" height="26" as="geometry"/>
+        </mxCell>
+
+        <!-- 安全层 -->
+        <mxCell id="security-layer" value="安全层" style="swimlane;startSize=22;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="mcp-server">
+          <mxGeometry x="300" y="520" width="170" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec-auth" value="身份认证&#xa;HeaderAuthenticationProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="security-layer">
+          <mxGeometry x="8" y="28" width="150" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec-path" value="路径安全校验&#xa;绝对路径拒绝 + 前缀绑定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="security-layer">
+          <mxGeometry x="8" y="60" width="150" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec-isolation" value="工作区前缀隔离&#xa;{system}-{agent}-{user}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="security-layer">
+          <mxGeometry x="8" y="92" width="150" height="28" as="geometry"/>
+        </mxCell>
+
+        <!-- 增强层 -->
+        <mxCell id="enhance-layer" value="增强层" style="swimlane;startSize=22;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="mcp-server">
+          <mxGeometry x="490" y="520" width="170" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="enh-snapshot" value="快照管理&#xa;前置快照 + 回滚双重兜底" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="enhance-layer">
+          <mxGeometry x="8" y="28" width="155" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="enh-quota" value="配额管控（装饰器模式）&#xa;QuotaManager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="enhance-layer">
+          <mxGeometry x="8" y="62" width="155" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="enh-otel" value="可观测性（零开销装饰器）&#xa;OpenTelemetry Tracing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="enhance-layer">
+          <mxGeometry x="8" y="96" width="155" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- 工厂 -->
+        <mxCell id="factory" value="StorageProviderFactory&#xa;工厂装配：身份 → 前缀 → 存储实例 → 装饰器链" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="710" width="680" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 右侧顶部：沙箱容器 ==================== -->
+        <mxCell id="sandbox-box" value="沙箱容器（按需懒加载）" style="swimlane;startSize=25;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="40" width="280" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="sandbox-shell" value="Shell 执行环境" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="sandbox-box">
+          <mxGeometry x="20" y="40" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sandbox-browser" value="Browser 执行环境" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="sandbox-box">
+          <mxGeometry x="20" y="95" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sandbox-computer" value="Computer 执行环境" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="sandbox-box">
+          <mxGeometry x="20" y="150" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sandbox-mount" value="📁 /workspace 挂载点&#xa;指向 OSS 工作区" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="sandbox-box">
+          <mxGeometry x="20" y="215" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Sandbox MCP endpoint -->
+        <mxCell id="sandbox-mcp" value="Sandbox MCP Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="340" width="240" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 右侧底部：阿里云 OSS ==================== -->
+        <mxCell id="oss-box" value="阿里云 OSS 存储" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="460" width="280" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="oss-prefix" value="mcp/workspaces/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="oss-box">
+          <mxGeometry x="20" y="35" width="240" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="oss-ws1" value="{system-A}-{agent-1}-{user-alice}/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="oss-box">
+          <mxGeometry x="20" y="65" width="240" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="oss-ws1-files" value="   ├ skills/&#xa;   ├ .snapshots/&#xa;   ├ .trash/&#xa;   ├ .shadow/&#xa;   ├ .storage&#xa;   └ user files ..." style="text;html=1;fontSize=9;fontColor=#666666;align=left;" vertex="1" parent="oss-box">
+          <mxGeometry x="25" y="90" width="230" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="oss-ws2" value="{system-B}-{agent-2}-{user-bob}/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="oss-box">
+          <mxGeometry x="20" y="170" width="240" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="oss-ws3" value="{system-C}-{agent-3}-{user-carol}/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="oss-box">
+          <mxGeometry x="20" y="198" width="240" height="22" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== 连接线 ==================== -->
+
+        <!-- 客户端 → MCP Server -->
+        <mxCell id="edge1" value="Authorization: {system}-{agent}-{user}&#xa;(Streamable HTTP, Stateless)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#9673a6;strokeColor=#9673a6;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" parent="1" source="openclaw" target="mcp-endpoint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="155"/>
+              <mxPoint x="300" y="122"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge2" value="Authorization: {system}-{agent}-{user}" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#9673a6;strokeColor=#9673a6;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="hermes" target="mcp-endpoint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="225"/>
+              <mxPoint x="310" y="130"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge3" value="Authorization: {system}-{agent}-{user}" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#9673a6;strokeColor=#9673a6;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" parent="1" source="qwenpaw" target="mcp-endpoint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="295"/>
+              <mxPoint x="320" y="138"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 文件工具 → 存储层 -->
+        <mxCell id="edge4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=1.5;exitX=0;exitY=1;entryX=0.1;entryY=0;" edge="1" parent="1" source="static-safety" target="storage-layer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="420" />
+              <mxPoint x="350" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 存储层 → 安全层 -->
+        <mxCell id="edge5" value="getFullKey()&#xa;单点路径安全" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#b85450;strokeColor=#b85450;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="storage-layer" target="security-layer">
+          <mxGeometry relative="1" as="geometry" y="65" />
+        </mxCell>
+
+        <!-- 中继工具 → 沙箱 MCP -->
+        <mxCell id="edge6" value="透明转发 (携带相同 Authorization)&#xa;中继工具调用 → 下游沙箱 MCP Server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#d79b00;strokeColor=#d79b00;strokeWidth=1.5;exitX=1;exitY=0.25;entryX=0;entryY=0.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="relay-tools" target="sandbox-mcp">
+          <mxGeometry relative="1" as="geometry" y="-80">
+            <Array as="points">
+              <mxPoint x="1050" y="424"/>
+              <mxPoint x="1050" y="355"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 沙箱 MCP → 沙箱容器 -->
+        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d79b00;strokeWidth=1.5;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="sandbox-mcp" target="sandbox-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 工厂 → OSS -->
+        <mxCell id="edge8" value="输入流传入 → 流式解析 （防 OOM）&#xa;路径前缀隔离：不同身份不同前缀" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#666666;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.25;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="factory" target="oss-box">
+          <mxGeometry relative="1" as="geometry" y="-60" />
+        </mxCell>
+
+        <!-- 沙箱 → OSS (挂载) -->
+        <mxCell id="edge9" value="/workspace 挂载&#xa;(同一套身份体系)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#d79b00;strokeColor=#d79b00;strokeWidth=1.5;dashed=1;exitX=1;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="sandbox-box" target="oss-box">
+          <mxGeometry relative="1" as="geometry" x="40">
+            <Array as="points">
+              <mxPoint x="1380" y="320"/>
+              <mxPoint x="1380" y="460"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 图例 -->
+        <mxCell id="legend" value="图例" style="swimlane;startSize=22;fillColor=none;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="250" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="28" width="24" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="文件管理安全体系（静态安全）" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="42" y="26" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="48" width="24" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="沙箱执行安全体系（动态安全）" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="42" y="46" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="68" width="24" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="安全层 / 拒绝路径" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="42" y="66" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="88" width="24" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4t" value="MCP Server 核心框架" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="42" y="86" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

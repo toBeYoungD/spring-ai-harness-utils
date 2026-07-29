@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spring AI Harness MCP Server · 总体架构</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1280px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container { background: rgba(15, 23, 42, 0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; }
+    svg { width: 100%; min-width: 1100px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; } .card-dot.emerald { background: #34d399; } .card-dot.violet { background: #a78bfa; } .card-dot.amber { background: #fbbf24; } .card-dot.rose { background: #fb7185; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+    .toolbar { display: flex; gap: 0.5rem; margin-left: auto; flex-shrink: 0; align-items: center; }
+    .toolbar-toggle { background: transparent; border: none; color: #475569; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; border-radius: 0.375rem; transition: color 0.2s, background 0.2s; }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions { display: none; gap: 0.5rem; }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button { background: rgba(30, 41, 59, 0.8); border: 1px solid #334155; color: #94a3b8; padding: 0.375rem 0.75rem; border-radius: 0.375rem; font-family: inherit; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .toolbar-actions button:hover { background: rgba(51, 65, 85, 0.8); color: white; border-color: #475569; }
+    @media print { body { background: #020617; padding: 1rem; } .toolbar { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Spring AI Harness MCP Server · 总体架构</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">分层框图 · 通用接入,不绑定具体智能体 · 文件能力与沙箱分离</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1220 810">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- 客户端 (External) -->
+        <rect x="430" y="20" width="340" height="50" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="600" y="42" fill="white" font-size="12" font-weight="600" text-anchor="middle">MCP 客户端</text>
+        <text x="600" y="58" fill="#94a3b8" font-size="9" text-anchor="middle">各类 AI 智能体(通用接入)</text>
+
+        <!-- 服务大容器 (Region boundary) -->
+        <rect x="30" y="100" width="940" height="625" rx="12" fill="rgba(251, 191, 36, 0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="44" y="120" fill="#fbbf24" font-size="11" font-weight="600">Spring AI Harness MCP Server</text>
+
+        <!-- L1 工具层 分组 -->
+        <rect x="45" y="150" width="910" height="175" rx="8" fill="transparent" stroke="#475569" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="55" y="166" fill="#94a3b8" font-size="9" font-weight="600">工具层(通用,所有智能体共享)</text>
+
+        <!-- FileSystemTools (Frontend/cyan) -->
+        <rect x="55" y="180" width="300" height="135" rx="6" fill="#0f172a"/>
+        <rect x="55" y="180" width="300" height="135" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="205" y="200" fill="white" font-size="12" font-weight="600" text-anchor="middle">FileSystemTools</text>
+        <text x="65" y="220" fill="#94a3b8" font-size="8">• Read / Write / Edit</text>
+        <text x="65" y="234" fill="#94a3b8" font-size="8">• Glob / Grep</text>
+        <text x="65" y="248" fill="#94a3b8" font-size="8">• ListDirectory / Trash</text>
+        <text x="65" y="262" fill="#94a3b8" font-size="8">• ListSnapshots / Rewind</text>
+        <text x="65" y="276" fill="#94a3b8" font-size="8">• SendFileToUser</text>
+        <text x="205" y="300" fill="#22d3ee" font-size="7" text-anchor="middle">@McpTool · 10 工具</text>
+
+        <!-- SkillTools (Frontend/cyan) -->
+        <rect x="370" y="180" width="180" height="135" rx="6" fill="#0f172a"/>
+        <rect x="370" y="180" width="180" height="135" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="460" y="200" fill="white" font-size="12" font-weight="600" text-anchor="middle">SkillTools</text>
+        <text x="380" y="222" fill="#94a3b8" font-size="8">• ListSkills</text>
+        <text x="380" y="236" fill="#94a3b8" font-size="8">• ReadSkill</text>
+        <text x="380" y="250" fill="#94a3b8" font-size="8">• skill:// 资源</text>
+        <text x="460" y="300" fill="#22d3ee" font-size="7" text-anchor="middle">技能发现与读取</text>
+
+        <!-- RelayTools (Frontend/cyan) -->
+        <rect x="565" y="180" width="380" height="135" rx="6" fill="#0f172a"/>
+        <rect x="565" y="180" width="380" height="135" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="755" y="200" fill="white" font-size="12" font-weight="600" text-anchor="middle">RelayTools(中继,可选)</text>
+        <text x="575" y="222" fill="#94a3b8" font-size="8">• 浏览器/沙箱: browser_* / computer / shell / ipython</text>
+        <text x="575" y="238" fill="#94a3b8" font-size="8">• 办公系统: 接口工具</text>
+        <text x="575" y="254" fill="#94a3b8" font-size="8">• 业务系统: 接口工具</text>
+        <text x="755" y="300" fill="#22d3ee" font-size="7" text-anchor="middle">代理下游 MCP 服务</text>
+
+        <!-- L2 工厂 + 鉴权 分组 -->
+        <rect x="45" y="340" width="910" height="90" rx="8" fill="transparent" stroke="#475569" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="55" y="356" fill="#94a3b8" font-size="9" font-weight="600">存储工厂 + 身份认证</text>
+
+        <!-- StorageProviderFactory (Backend/emerald) -->
+        <rect x="55" y="365" width="380" height="55" rx="6" fill="#0f172a"/>
+        <rect x="55" y="365" width="380" height="55" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="245" y="385" fill="white" font-size="11" font-weight="600" text-anchor="middle">StorageProviderFactory</text>
+        <text x="245" y="401" fill="#94a3b8" font-size="8" text-anchor="middle">getStorageProvider(ctx) → DefaultStorageProviderFactory</text>
+        <text x="245" y="413" fill="#94a3b8" font-size="8" text-anchor="middle">按身份构造隔离存储实例</text>
+
+        <!-- 身份认证 (Security/rose) -->
+        <rect x="450" y="365" width="495" height="55" rx="6" fill="#0f172a"/>
+        <rect x="450" y="365" width="495" height="55" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="697" y="385" fill="white" font-size="11" font-weight="600" text-anchor="middle">身份认证(抽象)</text>
+        <text x="697" y="401" fill="#94a3b8" font-size="8" text-anchor="middle">AuthenticationProvider / HeaderAuthenticationProvider</text>
+        <text x="697" y="413" fill="#94a3b8" font-size="8" text-anchor="middle">→ WorkspaceIdentity(system, agent, user)</text>
+
+        <!-- L3 装饰器 分组 -->
+        <rect x="45" y="445" width="910" height="70" rx="8" fill="transparent" stroke="#475569" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="55" y="461" fill="#94a3b8" font-size="9" font-weight="600">可插拔装饰器(洋葱式包裹,关闭零开销)</text>
+
+        <rect x="55" y="470" width="410" height="38" rx="6" fill="#0f172a"/>
+        <rect x="55" y="470" width="410" height="38" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="260" y="487" fill="white" font-size="10" font-weight="600" text-anchor="middle">ObservedStorageProvider</text>
+        <text x="260" y="501" fill="#94a3b8" font-size="8" text-anchor="middle">Micrometer 链路追踪</text>
+
+        <rect x="480" y="470" width="465" height="38" rx="6" fill="#0f172a"/>
+        <rect x="480" y="470" width="465" height="38" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="712" y="487" fill="white" font-size="10" font-weight="600" text-anchor="middle">QuotaEnforcedStorageProvider</text>
+        <text x="712" y="501" fill="#94a3b8" font-size="8" text-anchor="middle">配额 · QuotaManager + .storage 元文件</text>
+
+        <!-- L4 存储+内容+快照 分组 -->
+        <rect x="45" y="530" width="910" height="100" rx="8" fill="transparent" stroke="#475569" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="55" y="546" fill="#94a3b8" font-size="9" font-weight="600">存储实现 + 内容处理 + 快照</text>
+
+        <!-- AliyunOssStorage (Database/violet) -->
+        <rect x="55" y="555" width="320" height="68" rx="6" fill="#0f172a"/>
+        <rect x="55" y="555" width="320" height="68" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="215" y="575" fill="white" font-size="11" font-weight="600" text-anchor="middle">AliyunOssStorage</text>
+        <text x="215" y="591" fill="#94a3b8" font-size="8" text-anchor="middle">getFullKey() 路径约束</text>
+        <text x="215" y="605" fill="#94a3b8" font-size="8" text-anchor="middle">trash() 软删 / createDownloadLink()</text>
+
+        <!-- FileContentProcessor (Backend/emerald) -->
+        <rect x="390" y="555" width="290" height="68" rx="6" fill="#0f172a"/>
+        <rect x="390" y="555" width="290" height="68" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="535" y="575" fill="white" font-size="11" font-weight="600" text-anchor="middle">FileContentProcessor</text>
+        <text x="535" y="591" fill="#94a3b8" font-size="8" text-anchor="middle">文本 / 图片 / PDF / Office</text>
+        <text x="535" y="605" fill="#94a3b8" font-size="8" text-anchor="middle">流式 InputStream · 防 OOM</text>
+
+        <!-- SnapshotProvider (MessageBus/orange) -->
+        <rect x="695" y="555" width="250" height="68" rx="6" fill="#0f172a"/>
+        <rect x="695" y="555" width="250" height="68" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="820" y="575" fill="white" font-size="11" font-weight="600" text-anchor="middle">SnapshotProvider</text>
+        <text x="820" y="591" fill="#94a3b8" font-size="8" text-anchor="middle">DefaultSnapshotProvider</text>
+        <text x="820" y="605" fill="#94a3b8" font-size="8" text-anchor="middle">.snapshots/ 自动快照 + Rewind</text>
+
+        <!-- L5 配置 分组 -->
+        <rect x="45" y="645" width="910" height="65" rx="8" fill="transparent" stroke="#475569" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="55" y="661" fill="#94a3b8" font-size="9" font-weight="600">自动配置(@ConditionalOnMissingBean 可覆盖)</text>
+
+        <rect x="55" y="670" width="290" height="32" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="200" y="690" fill="white" font-size="9" font-weight="600" text-anchor="middle">HarnessMcpServerAutoConfiguration</text>
+
+        <rect x="360" y="670" width="250" height="32" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="485" y="690" fill="white" font-size="9" font-weight="600" text-anchor="middle">AliyunOssAutoConfiguration</text>
+
+        <rect x="625" y="670" width="320" height="32" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="785" y="690" fill="white" font-size="9" font-weight="600" text-anchor="middle">ObservabilityAutoConfiguration + Properties</text>
+
+        <!-- 下游 MCP Servers (External) -->
+        <rect x="1000" y="190" width="200" height="38" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1100" y="213" fill="white" font-size="9" font-weight="600" text-anchor="middle">浏览器/沙箱 MCP Server</text>
+
+        <rect x="1000" y="238" width="200" height="38" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1100" y="261" fill="white" font-size="9" font-weight="600" text-anchor="middle">办公系统 MCP Server</text>
+
+        <rect x="1000" y="286" width="200" height="38" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1100" y="309" fill="white" font-size="9" font-weight="600" text-anchor="middle">业务系统 MCP Server</text>
+
+        <!-- 阿里云 OSS (Cloud/amber) -->
+        <rect x="390" y="745" width="340" height="45" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="560" y="765" fill="white" font-size="12" font-weight="600" text-anchor="middle">阿里云 OSS</text>
+        <text x="560" y="781" fill="#94a3b8" font-size="9" text-anchor="middle">对象存储后端</text>
+
+        <!-- 连接线(无箭头,表示组成关系) -->
+        <line x1="600" y1="70" x2="600" y2="100" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="945" y1="225" x2="1000" y2="209" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="945" y1="248" x2="1000" y2="257" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="945" y1="270" x2="1000" y2="305" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="560" y1="725" x2="560" y2="745" stroke="#64748b" stroke-width="1.5"/>
+
+        <!-- 图例 -->
+        <text x="1000" y="400" fill="white" font-size="10" font-weight="600">Legend</text>
+        <rect x="1000" y="410" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="1022" y="419" fill="#94a3b8" font-size="8">工具层</text>
+        <rect x="1000" y="426" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="1022" y="435" fill="#94a3b8" font-size="8">工厂/内容处理</text>
+        <rect x="1000" y="442" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="1022" y="451" fill="#94a3b8" font-size="8">存储实现</text>
+        <rect x="1000" y="458" width="16" height="10" rx="2" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="1022" y="467" fill="#94a3b8" font-size="8">装饰器/快照</text>
+        <rect x="1000" y="474" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="1022" y="483" fill="#94a3b8" font-size="8">鉴权/安全</text>
+        <rect x="1000" y="490" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="1022" y="499" fill="#94a3b8" font-size="8">云存储后端</text>
+        <rect x="1000" y="506" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="1022" y="515" fill="#94a3b8" font-size="8">外部/配置</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>工具层(通用)</h3>
+        </div>
+        <ul>
+          <li>• FileSystemTools:10 个文件/快照工具</li>
+          <li>• SkillTools:技能发现与读取</li>
+          <li>• RelayTools:中继浏览器/办公/业务系统</li>
+          <li>• 所有智能体共享同一套能力</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot rose"></div>
+          <h3>隔离与安全</h3>
+        </div>
+        <ul>
+          <li>• 身份认证 → WorkspaceIdentity</li>
+          <li>• 每身份独占 OSS 前缀</li>
+          <li>• getFullKey() 路径约束,绝对路径拒绝</li>
+          <li>• 装饰器可插拔,关闭零开销</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>存储与后端</h3>
+        </div>
+        <ul>
+          <li>• 阿里云 OSS 对象存储</li>
+          <li>• 流式内容处理防 OOM</li>
+          <li>• 自动快照 + Rewind 回退</li>
+          <li>• 配额限制 + 可观测追踪</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">Spring AI Harness MCP Server · 总体架构(深色版)· 生成自 architecture-diagram skill</p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) { btn.textContent = '✗ Failed'; }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+    async function downloadPNG(btn) {
+      const orig = btn.textContent; btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a'); link.download = '01-architecture.png'; link.href = canvas.toDataURL('image/png'); link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) { btn.textContent = '✗ Failed'; }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+    async function downloadPDF(btn) {
+      const orig = btn.textContent; btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('01-architecture.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) { btn.textContent = '✗ Failed'; }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>

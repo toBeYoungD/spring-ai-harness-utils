@@ -1,0 +1,334 @@
+<mxfile host="app.diagrams.net" agent="Claude Code" version="24.0.0">
+  <diagram name="1-总体架构(框图)" id="page1">
+    <mxGraphModel dx="1300" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="920" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p1-title" value="总体架构(分层框图)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="0" width="600" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-client" value="MCP 客户端 · 各类 AI 智能体(通用接入)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="35" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-server" value="Spring AI Harness MCP Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="980" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-l1" value="工具层(通用,所有智能体共享同一套能力)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="145" width="920" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-t1" value="FileSystemTools&#10;Read / Write / Edit&#10;Glob / Grep&#10;ListDirectory / Trash&#10;ListSnapshots / Rewind&#10;SendFileToUser" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="185" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-t2" value="SkillTools&#10;ListSkills&#10;ReadSkill&#10;skill:// 资源" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="185" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-t3" value="RelayTools(中继,可选)&#10;浏览器/沙箱: browser_* / computer / shell / ipython&#10;办公系统: 接口工具&#10;业务系统: 接口工具" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="185" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-l2" value="存储工厂 + 身份认证" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="345" width="920" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-factory" value="StorageProviderFactory&#10;getStorageProvider(ctx) -&gt; DefaultStorageProviderFactory&#10;按身份构造隔离存储实例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="385" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-auth" value="身份认证(抽象)&#10;AuthenticationProvider / HeaderAuthenticationProvider&#10;-&gt; WorkspaceIdentity(system, agent, user)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="385" width="450" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-l3" value="可插拔装饰器(洋葱式包裹,关闭零开销)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="475" width="920" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-obs" value="ObservedStorageProvider(Micrometer 链路追踪)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="90" y="515" width="440" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-quota" value="QuotaEnforcedStorageProvider(配额,QuotaManager + .storage)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="550" y="515" width="420" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-l4" value="存储实现 + 内容处理 + 快照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="590" width="920" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-storage" value="AliyunOssStorage&#10;getFullKey() 路径约束&#10;trash() 软删 / createDownloadLink()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="630" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-fcp" value="FileContentProcessor&#10;文本 / 图片 / PDF / Office&#10;流式(InputStream,防 OOM)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="630" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-snap" value="SnapshotProvider&#10;DefaultSnapshotProvider&#10;.snapshots/ 自动快照 + Rewind" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="710" y="630" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-l5" value="自动配置(@ConditionalOnMissingBean 可覆盖)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="740" width="920" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-auto1" value="HarnessMcpServerAutoConfiguration" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="90" y="775" width="280" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-auto2" value="AliyunOssAutoConfiguration" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="390" y="775" width="240" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-auto3" value="ObservabilityAutoConfiguration + Properties" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="650" y="775" width="320" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-ds1" value="浏览器/沙箱 MCP Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="190" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-ds2" value="办公系统 MCP Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="240" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-ds3" value="业务系统 MCP Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="290" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-oss" value="阿里云 OSS(对象存储后端)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="870" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-c-srv" style="endArrow=none;html=1;rounded=0;strokeColor=#666666;" edge="1" parent="1" source="p1-client" target="p1-server"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p1-relay1" style="endArrow=none;html=1;rounded=0;strokeColor=#666666;" edge="1" parent="1" source="p1-t3" target="p1-ds1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p1-relay2" style="endArrow=none;html=1;rounded=0;strokeColor=#666666;" edge="1" parent="1" source="p1-t3" target="p1-ds2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p1-relay3" style="endArrow=none;html=1;rounded=0;strokeColor=#666666;" edge="1" parent="1" source="p1-t3" target="p1-ds3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p1-srv-oss" style="endArrow=none;html=1;rounded=0;strokeColor=#666666;" edge="1" parent="1" source="p1-server" target="p1-oss"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="2-工具代理逻辑(通用)" id="page2">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p2-title" value="工具代理逻辑(所有工具通用,不区分具体工具)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="0" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-start" value="MCP 工具调用请求(携带身份标识)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="220" y="45" width="260" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-auth" value="身份识别与校验 -&gt; 工作区身份" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="220" y="125" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-factory" value="按身份装配隔离存储实例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="220" y="205" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-dec" value="可选:叠加配额 / 可观测装饰器" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="220" y="285" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-exec" value="工具执行(通用:文件读写 / 搜索 / 快照 / 技能等)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="190" y="365" width="320" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-end" value="返回结果" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="240" y="455" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-note" value="所有工具共享同一代理逻辑:身份隔离 -&gt; 装配存储 -&gt; 执行,不因工具类型而异" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="520" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p2-start" target="p2-auth"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p2-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p2-auth" target="p2-factory"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p2-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p2-factory" target="p2-dec"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p2-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p2-dec" target="p2-exec"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p2-e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p2-exec" target="p2-end"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="3-工作区隔离与安全细则" id="page3">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p3-title" value="工作区隔离与安全细则" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="0" width="360" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-tleft" value="身份 -&gt; 隔离边界(抽象)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="360" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-identity" value="身份标识(抽象)&#10;服务端统一解析,格式可演进" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="80" y="90" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-prefix" value="工作区存储前缀&#10;每个身份独占一块,互不可见" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="185" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-noteleft" value="当前实现以请求头携带身份;具体格式为测试期方案,&#10;可替换为独立鉴权模块,不影响隔离原则" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="255" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-tright" value="安全细则(原则,非实现细节)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="50" width="500" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-r1" value="① 所有文件路径强制约束在该身份的工作区前缀内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="90" width="460" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-r2" value="② 绝对路径(以 / 开头)直接拒绝,防止越权" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="145" width="460" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-r3" value="③ 内部目录(.snapshots / .trash / .shadow)对用户不可见" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="200" width="460" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-r4" value="④ 返回信息不含存储真实路径,仅返回相对路径" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="255" width="460" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-r5" value="⑤ 身份标识是工作区隔离的唯一来源" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="310" width="460" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-noteright" value="强调安全细则本身;具体校验函数为实现细节,可随实现演进替换" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="460" y="365" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p3-identity" target="p3-prefix"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="4-文件系统交互流程" id="page4">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p4-title" value="与文件系统交互流程" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="0" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-start" value="文件操作请求" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="45" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-judge" value="操作类型?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="340" y="125" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-read" value="读取类&#10;读/搜索/列目录" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="235" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-modify" value="修改类&#10;写/编辑" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="360" y="235" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-delete" value="删除类" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="235" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-readflow" value="从隔离存储读取流&#10;委托内容处理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="325" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-snap" value="创建前置快照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="360" y="325" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-trash" value="移入回收站 .trash/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="325" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-write" value="写入存储" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="360" y="405" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-end" value="返回结果" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="500" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-note" value="修改/删除类操作均有安全前置(快照 / 回收站),保证可恢复" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="570" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-start" target="p4-judge"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e2" value="读" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p4-judge" target="p4-read"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e3" value="改" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p4-judge" target="p4-modify"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e4" value="删" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p4-judge" target="p4-delete"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-read" target="p4-readflow"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-modify" target="p4-snap"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-snap" target="p4-write"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-delete" target="p4-trash"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-readflow" target="p4-end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-write" target="p4-end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p4-e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p4-trash" target="p4-end"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="5-配额装饰器流程" id="page5">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p5-title" value="配额装饰器流程 - QuotaEnforcedStorageProvider.writeString" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="0" width="520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-start" value="writeString(path, content) 进入配额装饰器" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="250" y="40" width="300" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-j1" value="是否排除路径?&#10;(.snapshots / .trash / .shadow / .storage&#10;或按 include 配置不计入)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="255" y="115" width="290" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-skip" value="直接 delegate.writeString&#10;(跳过计费,原样写)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-newsize" value="计算 newSize = content 字节数(UTF-8)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="240" width="260" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-oldsize" value="获取 oldSize(若文件已存在且非目录)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="315" width="260" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-delta" value="delta = newSize - oldSize" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="390" width="260" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-j2" value="delta &gt; 0 ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="305" y="465" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-check" value="quotaManager.checkQuota&#10;(校验 used+delta 是否超限)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="580" y="470" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-exceed" value="抛 QuotaExceededException&#10;(中断,不写入)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="555" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-write" value="delegate.writeString(真正写入)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="270" y="575" width="260" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-update" value="quotaManager.updateUsedBytes(delta)&#10;增量更新 .storage 元文件" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="270" y="650" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-end" value="完成" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="335" y="730" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p5-start" target="p5-j1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e2" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p5-j1" target="p5-skip"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e3" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p5-j1" target="p5-newsize"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p5-newsize" target="p5-oldsize"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p5-oldsize" target="p5-delta"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p5-delta" target="p5-j2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e7" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p5-j2" target="p5-check"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e8" value="超限" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;strokeColor=#b85450;fontColor=#b85450;" edge="1" parent="1" source="p5-check" target="p5-exceed"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e9" value="未超限" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p5-check" target="p5-write"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e10" value="否(delta≤0)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;" edge="1" parent="1" source="p5-j2" target="p5-write"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p5-write" target="p5-update"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;" edge="1" parent="1" source="p5-update" target="p5-end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-e13" value="写入并返回" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;fontSize=10;dashed=1;" edge="1" parent="1" source="p5-skip" target="p5-end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p5-note" value="装饰器只拦截改变占用的操作(写/删/移动);读取类直接放行。关闭配额时工厂返回裸 Storage,零开销。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="790" width="700" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="6-文件与执行安全多重保障" id="page6">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1240" pageHeight="680" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p6-title" value="文件与执行安全多重保障" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="0" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-sub" value="文件系统侧 + 执行沙箱侧,双重维度保障安全" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="270" y="30" width="700" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-lefth" value="文件系统安全(本 MCP Server 保障)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="540" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-righth" value="执行沙箱安全(python / shell / browser_use)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="70" width="560" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-m1" value="① 工作区隔离&#10;每个身份独占存储前缀,路径强制约束在前缀内&#10;效果:杜绝跨工作区越权访问" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="540" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-m2" value="② 版本快照与回退&#10;写/编辑前自动快照,支持 Rewind 回退&#10;效果:误改可回退到历史版本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="205" width="540" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-m3" value="③ 回收站软删除&#10;删除移入 .trash/ 而非物理删除&#10;效果:误删可恢复" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="540" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-s1" value="④ 容器级隔离&#10;python / shell / browser_use 在独立沙箱执行,按用户/会话隔离&#10;效果:执行环境互不影响" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="120" width="560" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-s2" value="⑤ 工作区挂载&#10;沙箱挂载该用户工作区,可访问但不可越界&#10;效果:执行权限不突破文件隔离" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="205" width="560" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-s3" value="⑥ 执行与存储分离&#10;执行环境独立于文件存储,危险操作不波及他人&#10;效果:危险代码被限制在沙箱内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="290" width="560" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-summary" value="文件侧:访问受控 · 误改可退 · 误删可恢(文件不丢失)&#10;执行侧:python / shell / browser_use 沙箱隔离(执行受控)&#10;=&gt; 文件与执行双重安全保障" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="395" width="1000" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-note" value="文件系统与沙箱分离:文件操作无需容器,少量资源服务多用户;执行类按需开沙箱,资源按用户隔离" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="240" y="480" width="760" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="快照与回滚流程">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="快照与回滚流程 — 双重兜底机制" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#333333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="500" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 左侧：前置快照流程 ===== -->
+        <mxCell id="pre-box" value="一、前置快照（自动触发，对智能体透明）" style="swimlane;startSize=25;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="400" height="400" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-trigger" value="破坏性操作触发" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="pre-box">
+          <mxGeometry x="110" y="35" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-trigger-text" value="触发条件：Write（文件已存在）/ Edit / Trash" style="text;html=1;fontSize=10;fontColor=#666666;align=center;" vertex="1" parent="pre-box">
+          <mxGeometry x="15" y="105" width="170" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-read" value="读取当前文件内容" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="pre-box">
+          <mxGeometry x="120" y="165" width="160" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-meta" value="生成快照 ID：timestamp_counter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="pre-box">
+          <mxGeometry x="120" y="215" width="160" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-store" value="存储快照副本 + 元数据" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="pre-box">
+          <mxGeometry x="120" y="265" width="160" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-path" value="路径：.snapshots/{snapshotId}/{filePath}&#xa;元数据：meta.txt (filePath, action, timestamp)" style="text;html=1;fontSize=10;fontColor=#666666;align=left;" vertex="1" parent="pre-box">
+          <mxGeometry x="30" y="310" width="350" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pre-done" value="快照创建完成 → 继续执行原操作" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="pre-box">
+          <mxGeometry x="80" y="355" width="240" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- 前置快照内部连线 -->
+        <mxCell id="pe1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="pre-box" source="pre-trigger" target="pre-read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="pre-box" source="pre-read" target="pre-meta">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="pre-box" source="pre-meta" target="pre-store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=1;exitY=1;entryX=1;entryY=0;" edge="1" parent="pre-box" source="pre-store" target="pre-done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="300"/>
+              <mxPoint x="390" y="355"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== 右侧：回滚流程 ===== -->
+        <mxCell id="rewind-box" value="二、回滚流程（Rewind — 双重兜底）" style="swimlane;startSize=25;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="70" width="420" height="400" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-start" value="调用 Rewind(snapshotId)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="rewind-box">
+          <mxGeometry x="120" y="35" width="180" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-load" value="加载快照元数据，校验快照有效性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="rewind-box">
+          <mxGeometry x="105" y="85" width="210" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-safety" value="⚡ 关键步骤：创建&quot;回滚前&quot;安全快照&#xa;（action = REWIND）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="rewind-box">
+          <mxGeometry x="80" y="140" width="260" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-why" value="意义：保证回滚操作本身也可以被撤销&#xa;（undo-of-undo / 撤销的撤销）" style="text;html=1;fontSize=10;fontColor=#b85450;align=center;" vertex="1" parent="rewind-box">
+          <mxGeometry x="60" y="190" width="300" height="28" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-restore" value="读取快照内容 → 覆盖当前文件" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="rewind-box">
+          <mxGeometry x="105" y="235" width="210" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-result" value="返回：Successfully rewound" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="rewind-box">
+          <mxGeometry x="115" y="295" width="190" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rw-again" value="如果回滚错误 → 再次 Rewind 到&quot;回滚前&quot;快照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="rewind-box">
+          <mxGeometry x="60" y="350" width="300" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- 回滚内部连线 -->
+        <mxCell id="re1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="rewind-box" source="rw-start" target="rw-load">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="re2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="rewind-box" source="rw-load" target="rw-safety">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="re3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=1;exitY=1;entryX=1;entryY=0;" edge="1" parent="rewind-box" source="rw-safety" target="rw-restore">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="185"/>
+              <mxPoint x="370" y="235"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="re4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="rewind-box" source="rw-restore" target="rw-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="re5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;" edge="1" parent="rewind-box" source="rw-result" target="rw-again">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 底部：隐藏路径 + 说明 ===== -->
+        <mxCell id="hidden-box" value="三、透明存储（智能体不可见）" style="swimlane;startSize=22;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="510" width="880" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="hidden-tree" value="工作区根目录 (智能体视角)&#xa;├ src/&#xa;├ package.json&#xa;└ ..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=left;" vertex="1" parent="hidden-box">
+          <mxGeometry x="30" y="30" width="180" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="hidden-full" value="实际 OSS 存储路径&#xa;{prefix}/&#xa;├ src/&#xa;├ package.json&#xa;├ .snapshots/ ← 被 IGNORED_PATH_PATTERN 过滤&#xa;│   └ {snapshotId}/meta.txt + 文件副本&#xa;├ .trash/ ← 智能体不可见&#xa;└ .shadow/ ← 影子缓存，智能体不可见" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="hidden-box">
+          <mxGeometry x="250" y="30" width="300" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="hidden-arrow" value="过滤规则拦截 →" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#b85450;strokeColor=#b85450;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="hidden-box" source="hidden-tree" target="hidden-full">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hidden-note" value="智能体的 ListDirectory / Glob / Grep 永远不会返回 .snapshots/ .trash/ .shadow/ 目录" style="text;html=1;fontSize=10;fontColor=#666666;align=left;" vertex="1" parent="hidden-box">
+          <mxGeometry x="580" y="40" width="280" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 时间线示意 ===== -->
+        <mxCell id="timeline-box" value="四、时间线示例" style="swimlane;startSize=22;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="880" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1" value="T1: 创建文件 A&#xa;(v1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="timeline-box">
+          <mxGeometry x="15" y="40" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2" value="T2: 编辑文件 A&#xa;(v2) → 前置快照 S1 (v1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="timeline-box">
+          <mxGeometry x="145" y="40" width="155" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3" value="T3: 再次编辑 A&#xa;(v3) → 前置快照 S2 (v2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="timeline-box">
+          <mxGeometry x="330" y="40" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="t4" value="T4: Rewind → S2&#xa;先创建 S3 (v3, action=REWIND)&#xa;再将文件恢复到 v2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="timeline-box">
+          <mxGeometry x="520" y="40" width="170" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5" value="T5: 撤销回滚 → Rewind S3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="timeline-box">
+          <mxGeometry x="720" y="40" width="140" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="timeline-box" source="t1" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="timeline-box" source="t2" target="t3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="timeline-box" source="t3" target="t4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t-arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="timeline-box" source="t4" target="t5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

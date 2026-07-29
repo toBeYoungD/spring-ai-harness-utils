@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="管理台功能体系">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 标题 -->
+        <mxCell id="title" value="管理台：配置与管控层总览（管理员配置 + 用户自服务）" style="text;html=1;fontSize=16;fontStyle=1;fontColor=#333333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="180" y="20" width="780" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- 角色 -->
+        <mxCell id="role-admin" value="管理员" style="shape=umlActor;verticalLabelPosition=bottom;labelPosition=center;verticalAlign=top;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="45" y="145" width="40" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="role-user" value="用户" style="shape=umlActor;verticalLabelPosition=bottom;labelPosition=center;verticalAlign=top;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="45" y="205" width="40" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 第一层：管理台界面 ===== -->
+        <mxCell id="layer-ui" value="管理台界面（人机交互）" style="swimlane;startSize=25;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="130" width="1000" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui-admin-label" value="管理员配置（X-Admin-Token）" style="text;html=1;fontSize=9;fontColor=#6c8ebf;align=left;" vertex="1" parent="layer-ui">
+          <mxGeometry x="15" y="30" width="775" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui-user-label" value="用户自服务（system-agent-user）" style="text;html=1;fontSize=9;fontColor=#82b366;align=left;" vertex="1" parent="layer-ui">
+          <mxGeometry x="795" y="30" width="190" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="mod-file" value="文件存储管理&#xa;云盘 + 跨工作区" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="layer-ui">
+          <mxGeometry x="15" y="50" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="mod-perm" value="工具权限&#xa;tools/call 拦截（不裁剪列表）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="layer-ui">
+          <mxGeometry x="210" y="50" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="mod-quota" value="配额空间管理&#xa;按 system-agent-user 组合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="layer-ui">
+          <mxGeometry x="405" y="50" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="mod-audit" value="日志审计&#xa;行为日志 + 管理员操作日志" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="layer-ui">
+          <mxGeometry x="600" y="50" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="mod-acl" value="文件 ACL&#xa;路径级读写（用户自服务）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=10;fontStyle=1;" vertex="1" parent="layer-ui">
+          <mxGeometry x="795" y="50" width="190" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 第二层：配置下发与策略引擎 ===== -->
+        <mxCell id="layer-policy" value="配置下发与策略引擎（管控核心）" style="swimlane;startSize=25;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="275" width="1000" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="pol-engine" value="权限策略引擎&#xa;工具权限 + 文件 ACL 判定（准入 / 拒绝）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#9673a6;fontSize=10;fontStyle=1;" vertex="1" parent="layer-policy">
+          <mxGeometry x="15" y="35" width="320" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="pol-quota" value="配额管理器&#xa;按工作区统计，配额告警触发" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="layer-policy">
+          <mxGeometry x="355" y="35" width="270" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="pol-hot" value="配置下发通道&#xa;修改即生效，不重启 MCP Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="layer-policy">
+          <mxGeometry x="645" y="35" width="335" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 第三层：运行时执行层 ===== -->
+        <mxCell id="layer-runtime" value="运行时执行层（接收管控，不感知配置面）" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="415" width="1000" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="rte-file-chain" value="文件工具链&#xa;工作区隔离 → [切面]工具权限+审计 → [装饰器]文件ACL → [装饰器]配额 → OSS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1;" vertex="1" parent="layer-runtime">
+          <mxGeometry x="15" y="35" width="620" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="rte-relay-chain" value="中继工具链&#xa;[切面]工具权限+审计 → 沙箱容器" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="layer-runtime">
+          <mxGeometry x="655" y="35" width="325" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="rte-note" value="切面一次拦截同时做工具权限判定与审计记录；文件 ACL / 配额装饰器仿 QuotaEnforcedStorageProvider，零开销可插拔" style="text;html=1;fontSize=9;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="layer-runtime">
+          <mxGeometry x="15" y="98" width="965" height="22" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 层间箭头 ===== -->
+        <mxCell id="arrow-ui-policy" value="配置下发" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#9673a6;strokeColor=#9673a6;strokeWidth=2.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=block;endFill=1;" edge="1" parent="1" source="layer-ui" target="layer-policy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-policy-runtime" value="策略生效" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#9673a6;strokeColor=#9673a6;strokeWidth=2.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=block;endFill=1;" edge="1" parent="1" source="layer-policy" target="layer-runtime">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 角色 -> 管理台 -->
+        <mxCell id="admin-to-ui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.3;endArrow=block;endFill=1;" edge="1" parent="1" source="role-admin" target="layer-ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="user-to-ui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.7;endArrow=block;endFill=1;" edge="1" parent="1" source="role-user" target="layer-ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 图例 -->
+        <mxCell id="legend" value="图例" style="swimlane;startSize=22;fillColor=none;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="580" width="490" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-admin" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend">
+          <mxGeometry x="15" y="30" width="24" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-admin-t" value="管理员配置（X-Admin-Token）" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="45" y="28" width="200" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-user" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="15" y="50" width="24" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-user-t" value="用户自服务（system-agent-user）" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="45" y="48" width="220" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-pol" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="legend">
+          <mxGeometry x="260" y="30" width="24" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-pol-t" value="配置下发层（管控核心）" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="290" y="28" width="180" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-rte" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="260" y="50" width="24" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-rte-t" value="运行时层（接收管控）" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="290" y="48" width="160" height="18" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
