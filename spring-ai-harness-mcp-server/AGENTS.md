@@ -298,6 +298,20 @@ Requires admin identity via `X-Admin-Token: {adminToken}` header.
 | `POST` | `/api/v1/admin/workspaces/{workspaceKey}/files/move?fromPath=&toPath=` | Move/rename files in a specific workspace |
 | `DELETE` | `/api/v1/admin/workspaces/{workspaceKey}/files?path=` | Force-delete files in a specific workspace |
 
+#### Quota Admin Endpoints (`QuotaAdminController` - `/api/v1/admin/quota`)
+
+Requires admin identity via `X-Admin-Token: {adminToken}` header. Cross-workspace: enumerates OSS workspace prefixes via `listObjects(prefix, delimiter="/")` and constructs a bare `AliyunOssStorage` per workspace (no quota/permission decorators) to read/write `.storage`/`.quota` meta.
+
+| HTTP Method | Path | Description |
+|-------------|------|-------------|
+| `GET` | `/api/v1/admin/quota/workspaces` | List all workspaces with quota status (used bytes / limit / effective limit / status) |
+| `GET` | `/api/v1/admin/quota/workspaces/{key}` | Single workspace quota detail |
+| `PUT` | `/api/v1/admin/quota/workspaces/{key}/limit` | Set per-workspace custom limit (body `{"limitBytes":N}`; `null`/`<=0` reverts to global default by deleting `.quota`) |
+| `POST` | `/api/v1/admin/quota/workspaces/{key}/recalc` | Trigger full recalculation for a workspace (rewrites `.storage`) |
+| `GET` | `/api/v1/admin/quota/config` | Read-only global quota config (from `application.properties`) |
+
+**Enforcement is NOT in this controller** - `QuotaEnforcedStorageProvider` calls `QuotaManager.checkQuota()` before every write, using the effective limit (custom `.quota` value if set, else global `max-bytes`). Setting a custom limit takes effect on the next write operation.
+
 ### 5. StorageProvider & StorageProviderFactory
 
 Package: `storage/`
@@ -368,6 +382,18 @@ The observability module uses the **Decorator Pattern** for lightweight, pluggab
 - **`ObservedSnapshotProvider`**: Decorates snapshot creation and rewind methods.
 - **Zero-overhead pluggable assembly**: When observability is disabled, the factory returns raw storage instances — no per-operation `if` branch checks, ensuring zero runtime overhead.
 
+### 10. Storage Quota Module
+
+Package: `storage/`
+
+Per-workspace storage quota, enforced via the Decorator Pattern (pluggable, zero-overhead when off):
+
+- **`QuotaManager`**: Tracks usage via a `.storage` meta file (`usedBytes` + `calculatedAt`), with incremental updates on every write and a 24h full-recalculation interval. **Per-workspace custom limit** via a `.quota` meta file (`limitBytes` + `updatedAt`): `getEffectiveLimit()` returns the custom limit if `>0`, else the global `max-bytes`. `checkQuota()` enforces the effective limit; `getCachedMeta()` reads usage without triggering recalculation (for admin LIST).
+- **`QuotaEnforcedStorageProvider`**: Decorator that calls `checkQuota(delta)` before `writeString`/`writeFile`/`rename` (only for positive deltas) and `updateUsedBytes(delta)` after. Excluded paths (`.storage`, `.quota`, and optionally `.snapshots/`/`.trash/`/`.shadow/`) skip both checks. `getFullKey()` security still applies via the delegate.
+- **Meta files excluded from usage**: `.storage` and `.quota` never count toward quota; `getExcludePrefixes()` lists them for full recalculation.
+- **Admin API**: `QuotaAdminController` (`/api/v1/admin/quota/**`, `X-Admin-Token`) enumerates workspaces and manages custom limits - see §4. Enforcement is in the decorator, not the controller - setting a custom limit takes effect on the next write.
+- **Zero-overhead pluggable assembly**: When `quota.enabled=false`, `DefaultStorageProviderFactory` returns the raw `AliyunOssStorage` - no per-operation `if` branch.
+
 ---
 
 ## Configuration Reference
@@ -415,6 +441,20 @@ spring.ai.harness.mcp.server.download.public-endpoint=
 # File Upload Attachment Configuration
 spring.ai.harness.mcp.server.attachment.base-path=attachments
 spring.ai.harness.mcp.server.attachment.default-conversation-id=default
+
+# Storage Quota Configuration
+spring.ai.harness.mcp.server.quota.enabled=true
+# Global default limit per workspace (bytes, default 1GB)
+spring.ai.harness.mcp.server.quota.max-bytes=1073741824
+# Usage meta file (default .storage) / per-workspace custom-limit meta file (default .quota)
+spring.ai.harness.mcp.server.quota.meta-file=.storage
+spring.ai.harness.mcp.server.quota.limit-file=.quota
+# Full recalculation interval (default 24h)
+spring.ai.harness.mcp.server.quota.recalculation-interval=24h
+# Whether .snapshots/ / .trash/ / .shadow/ count toward quota (defaults: false / true / false)
+spring.ai.harness.mcp.server.quota.include-snapshots=false
+spring.ai.harness.mcp.server.quota.include-trash=true
+spring.ai.harness.mcp.server.quota.include-shadow-cache=false
 
 # Multipart file upload limits
 spring.servlet.multipart.max-file-size=50MB

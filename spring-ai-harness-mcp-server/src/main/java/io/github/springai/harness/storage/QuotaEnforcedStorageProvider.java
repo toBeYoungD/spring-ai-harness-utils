@@ -48,6 +48,10 @@ public class QuotaEnforcedStorageProvider implements StorageProvider {
 		if (cleanPath.equals(quotaManager.getMetaFile())) {
 			return true;
 		}
+		// per-workspace 自定义上限元文件同样不计入容量、不触发校验
+		if (cleanPath.equals(quotaManager.getLimitFile())) {
+			return true;
+		}
 		return false;
 	}
 

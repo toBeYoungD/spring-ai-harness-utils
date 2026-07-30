@@ -36,6 +36,7 @@ class QuotaEnforcedStorageProviderTest {
 	@BeforeEach
 	void setUp() {
 		lenient().when(quotaManager.getMetaFile()).thenReturn(".storage");
+		lenient().when(quotaManager.getLimitFile()).thenReturn(".quota");
 		lenient().when(quotaManager.isSnapshotsIncluded()).thenReturn(false);
 		provider = new QuotaEnforcedStorageProvider(delegate, quotaManager);
 	}
@@ -46,6 +47,16 @@ class QuotaEnforcedStorageProviderTest {
 		provider.writeString(".storage", "some-metadata");
 
 		verify(delegate).writeString(".storage", "some-metadata");
+		verify(quotaManager, never()).checkQuota(any(), anyLong());
+		verify(quotaManager, never()).updateUsedBytes(any(), anyLong());
+	}
+
+	@Test
+	@DisplayName("Should skip quota check when writing to .quota limit file")
+	void shouldSkipQuotaCheckForLimitFile() throws IOException {
+		provider.writeString(".quota", "limitBytes=500\n");
+
+		verify(delegate).writeString(".quota", "limitBytes=500\n");
 		verify(quotaManager, never()).checkQuota(any(), anyLong());
 		verify(quotaManager, never()).updateUsedBytes(any(), anyLong());
 	}

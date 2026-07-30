@@ -87,6 +87,12 @@ public class HarnessMcpServerProperties {
 		private String metaFile = ".storage";
 
 		/**
+		 * per-workspace 自定义上限元文件名，默认 .quota。
+		 * 文件不存在或 limitBytes<=0 时回退全局 maxBytes。
+		 */
+		private String limitFile = ".quota";
+
+		/**
 		 * 容量全量重计算间隔，默认 24h
 		 */
 		private Duration recalculationInterval = Duration.ofHours(24);

@@ -13,6 +13,11 @@ import java.util.List;
  * Manager for workspace storage quota.
  * Tracks usage, validates limit and updates capacity using .storage file.
  *
+ * <p>per-workspace 自定义上限通过 .quota 元文件持久化（与 .storage 同位）：
+ * 文件不存在或 limitBytes<=0 时回退全局 maxBytes；存在且 >0 即自定义上限生效。
+ * 应用端写校验由 {@link QuotaEnforcedStorageProvider} 装饰器在写前调 {@link #checkQuota} 触发，
+ * 故管理台设置上限后下一次写操作即按新上限校验。
+ *
  * @author ichaobuster
  */
 @Slf4j
@@ -41,6 +46,20 @@ public class QuotaManager {
 	}
 
 	/**
+	 * per-workspace 自定义上限元文件名（默认 .quota）。
+	 */
+	public String getLimitFile() {
+		return quotaProperties.getLimitFile();
+	}
+
+	/**
+	 * 全局默认上限（字节）。
+	 */
+	public long getGlobalMaxBytes() {
+		return quotaProperties.getMaxBytes();
+	}
+
+	/**
 	 * 获取已用容量（字节）。
 	 * 如果元文件不存在、过期或损坏，将触发全量计算。
 	 *
@@ -65,7 +84,49 @@ public class QuotaManager {
 	}
 
 	/**
-	 * 校验写入 deltaBytes 大小后是否超限。
+	 * 只读 .storage 缓存元数据，不触发全量重算（不存在/损坏返回 null）。
+	 * 供管理台 LIST 批量展示用，避免逐工作区触发重算。
+	 */
+	public StorageMeta getCachedMeta(StorageProvider storage) {
+		String metaFile = quotaProperties.getMetaFile();
+		try {
+			if (storage.exists(metaFile) && !storage.isDirectory(metaFile)) {
+				return parseMeta(storage.readString(metaFile));
+			}
+		} catch (Exception e) {
+			log.warn("读取容量元文件失败: {}", e.getMessage());
+		}
+		return null;
+	}
+
+	/**
+	 * 读取 .quota 自定义上限；不存在或 limitBytes<=0 返回 0（表示回退全局默认）。
+	 */
+	public long getCustomLimit(StorageProvider storage) {
+		String limitFile = quotaProperties.getLimitFile();
+		try {
+			if (storage.exists(limitFile) && !storage.isDirectory(limitFile)) {
+				QuotaLimit limit = parseLimit(storage.readString(limitFile));
+				if (limit != null) {
+					return limit.limitBytes();
+				}
+			}
+		} catch (Exception e) {
+			log.warn("读取配额上限元文件失败，回退全局默认: {}", e.getMessage());
+		}
+		return 0L;
+	}
+
+	/**
+	 * 生效上限：自定义 >0 用自定义，否则全局 maxBytes。
+	 */
+	public long getEffectiveLimit(StorageProvider storage) {
+		long custom = getCustomLimit(storage);
+		return custom > 0 ? custom : quotaProperties.getMaxBytes();
+	}
+
+	/**
+	 * 校验写入 deltaBytes 大小后是否超限。按生效上限（自定义优先，回退全局）校验。
 	 *
 	 * @param storage 底层存储提供者
 	 * @param deltaBytes 新增的字节数（可能为负数，但负数或零不进行校验）
@@ -75,7 +136,7 @@ public class QuotaManager {
 		if (deltaBytes <= 0) {
 			return;
 		}
-		long maxBytes = quotaProperties.getMaxBytes();
+		long maxBytes = getEffectiveLimit(storage);
 		long usedBytes = getUsedBytes(storage);
 		if (usedBytes + deltaBytes > maxBytes) {
 			throw new QuotaExceededException(
@@ -104,6 +165,36 @@ public class QuotaManager {
 			writeMeta(storage, newMeta);
 		} catch (Exception e) {
 			log.error("更新容量元文件失败: {}", e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * 设置 per-workspace 自定义上限（写 .quota）。limitBytes<=0 等同于清除（回退全局默认）。
+	 */
+	public synchronized void setCustomLimit(StorageProvider storage, long limitBytes) {
+		if (limitBytes <= 0) {
+			clearCustomLimit(storage);
+			return;
+		}
+		QuotaLimit limit = new QuotaLimit(limitBytes, System.currentTimeMillis());
+		try {
+			writeLimit(storage, limit);
+		} catch (Exception e) {
+			log.error("写入配额上限元文件失败: {}", e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * 清除 per-workspace 自定义上限（删 .quota），回退全局默认。
+	 */
+	public void clearCustomLimit(StorageProvider storage) {
+		String limitFile = quotaProperties.getLimitFile();
+		try {
+			if (storage.exists(limitFile)) {
+				storage.delete(limitFile);
+			}
+		} catch (Exception e) {
+			log.error("清除配额上限元文件失败: {}", e.getMessage(), e);
 		}
 	}
 
@@ -140,6 +231,7 @@ public class QuotaManager {
 		}
 		// 元文件自身不计入容量
 		excludes.add(quotaProperties.getMetaFile());
+		excludes.add(quotaProperties.getLimitFile());
 		return excludes;
 	}
 
@@ -154,6 +246,11 @@ public class QuotaManager {
 	private void writeMeta(StorageProvider storage, StorageMeta meta) throws IOException {
 		String content = String.format("usedBytes=%d\ncalculatedAt=%d\n", meta.usedBytes(), meta.calculatedAt());
 		storage.writeString(quotaProperties.getMetaFile(), content);
+	}
+
+	private void writeLimit(StorageProvider storage, QuotaLimit limit) throws IOException {
+		String content = String.format("limitBytes=%d\nupdatedAt=%d\n", limit.limitBytes(), limit.updatedAt());
+		storage.writeString(quotaProperties.getLimitFile(), content);
 	}
 
 	private StorageMeta parseMeta(String content) {
@@ -185,5 +282,39 @@ public class QuotaManager {
 		return null;
 	}
 
+	private QuotaLimit parseLimit(String content) {
+		if (!StringUtils.hasText(content)) {
+			return null;
+		}
+		Long limitBytes = null;
+		Long updatedAt = null;
+		String[] lines = content.split("\n");
+		for (String line : lines) {
+			int idx = line.indexOf('=');
+			if (idx > 0) {
+				String key = line.substring(0, idx).trim();
+				String val = line.substring(idx + 1).trim();
+				if ("limitBytes".equals(key)) {
+					try {
+						limitBytes = Long.parseLong(val);
+					} catch (NumberFormatException ignored) {}
+				} else if ("updatedAt".equals(key)) {
+					try {
+						updatedAt = Long.parseLong(val);
+					} catch (NumberFormatException ignored) {}
+				}
+			}
+		}
+		if (limitBytes != null) {
+			return new QuotaLimit(limitBytes, updatedAt != null ? updatedAt : 0L);
+		}
+		return null;
+	}
+
 	public record StorageMeta(long usedBytes, long calculatedAt) {}
+
+	/**
+	 * per-workspace 自定义上限元数据。
+	 */
+	public record QuotaLimit(long limitBytes, long updatedAt) {}
 }

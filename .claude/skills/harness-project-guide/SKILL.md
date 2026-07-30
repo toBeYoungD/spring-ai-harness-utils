@@ -68,9 +68,10 @@ REST controller 与 MCP tools **不各自实现文件操作**，都走：
 | `listFiles` / `getFileContent` / `uploadFile` / `deleteFile` / `moveFile` | `GET/POST/DELETE /api/v1/workspace/files`、`/files/content`、`/files/upload`、`/files/move` | `Authorization: {system}-{agent}-{user}` |
 | `listSnapshots` / `rewind` | `GET /api/v1/workspace/snapshots`、`POST /api/v1/workspace/rewind/{id}` | `Authorization` |
 | `listWorkspaces` / `listAdminWorkspaceFiles` / `deleteAdminWorkspaceFile` / `moveAdminWorkspaceFile` | `/api/v1/admin/workspaces[/{key}/files[/move]]` | `X-Admin-Token` |
+| `listQuotaWorkspaces` / `getQuotaWorkspace` / `setQuotaLimit` / `recalcQuota` / `getQuotaConfig` | `GET/PUT/POST /api/v1/admin/quota/workspaces[/{key}[/limit\|/recalc]]`、`/config` | `X-Admin-Token` |
 | `callMcp` | `POST /mcp`（JSON-RPC: tools/list、tools/call、resources/list、resources/read） | `Authorization` |
 
-> 配额管理 / 日志审计控制台目前为 **mock 数据**，`api.js` 尚无对应方法（后端待对接）。新增时遵循上表模式。
+> 配额管理控制台已接真实 API（dev-spec 06，`QuotaAdminController` + `api.js` 配额方法；无后端时前端回退 mock 预览）。日志审计控制台仍为 mock，`api.js` 尚无对应方法（后端待对接）。新增时遵循上表模式。
 
 ### 改动含义速记
 
@@ -89,7 +90,7 @@ REST controller 与 MCP tools **不各自实现文件操作**，都走：
 ### 后端 / 安全 / 权限
 
 - **workspace 隔离**：身份来自 `Authorization: {system}-{agent}-{user}`，成为 OSS 前缀 `mcp/workspaces/{system}-{agent}-{user}/`。**绝对路径（leading `/`）抛 `SecurityException`**；所有路径走 `AliyunOssStorage.getFullKey()`，不绕过。
-- **配额**：per `{system-agent-user}` 组合，默认 1GB，`QuotaEnforcedStorageProvider` 装饰器（默认开），`.storage` meta 增量 + 24h 全量重算。领域二计费暂不考虑，领域一配额存在。
+- **配额**：per `{system-agent-user}` 组合，默认 1GB，`QuotaEnforcedStorageProvider` 装饰器（默认开），`.storage` meta 增量 + 24h 全量重算。**per-workspace 自定义上限**经 `.quota` 元文件持久化（`>0` 生效，否则回退全局 `max-bytes`），`checkQuota` 读生效上限、写操作自动校验；管理台 `QuotaAdminController`（`/api/v1/admin/quota/**`，`X-Admin-Token`）枚举/设上限/重算/全局配置。领域二计费暂不考虑，领域一配额存在。
 - **file permission**：用户自服务（非管理员代办），`{system-agent-user}` 三段身份；管理员需跨工作区管理（`X-Admin-Token`）。
 - **Phase2 审计** = 智能体行为日志 + 管理员操作日志两类。行为日志由 `@McpTool` 切面记录，是 **tools/call 拦截**（非 tools/list 裁剪）。
 - **快照自动且可逆**：Write(existing)/Edit/Trash 前置快照；Rewind 自身先做安全快照（undo-of-undo）。`.snapshots/`、`.trash/`、`.shadow/` 隐藏于目录列表。

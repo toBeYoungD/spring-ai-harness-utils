@@ -51,7 +51,7 @@ class QuotaManagerTest {
 		long used = quotaManager.getUsedBytes(storage);
 
 		assertThat(used).isEqualTo(456L);
-		verify(storage).calculateTotalSize(List.of(".snapshots/", ".shadow/", ".storage"));
+		verify(storage).calculateTotalSize(List.of(".snapshots/", ".shadow/", ".storage", ".quota"));
 		verify(storage).writeString(eq(".storage"), contains("usedBytes=456"));
 	}
 
@@ -84,7 +84,7 @@ class QuotaManagerTest {
 		long used = quotaManager.getUsedBytes(storage);
 
 		assertThat(used).isEqualTo(789L);
-		verify(storage).calculateTotalSize(List.of(".snapshots/", ".shadow/", ".storage"));
+		verify(storage).calculateTotalSize(List.of(".snapshots/", ".shadow/", ".storage", ".quota"));
 		verify(storage).writeString(eq(".storage"), contains("usedBytes=789"));
 	}
 
@@ -158,5 +158,93 @@ class QuotaManagerTest {
 		quotaManager.updateUsedBytes(storage, -150L);
 
 		verify(storage).writeString(eq(".storage"), contains("usedBytes=0"));
+	}
+
+	@Test
+	@DisplayName("Should use custom limit from .quota when set")
+	void shouldUseCustomLimitWhenSet() throws IOException {
+		when(storage.exists(".quota")).thenReturn(true);
+		when(storage.isDirectory(".quota")).thenReturn(false);
+		when(storage.readString(".quota")).thenReturn("limitBytes=500\nupdatedAt=1000\n");
+
+		assertThat(quotaManager.getCustomLimit(storage)).isEqualTo(500L);
+		assertThat(quotaManager.getEffectiveLimit(storage)).isEqualTo(500L);
+	}
+
+	@Test
+	@DisplayName("Should fall back to global limit when .quota absent")
+	void shouldFallbackToGlobalWhenNoCustom() {
+		when(storage.exists(".quota")).thenReturn(false);
+
+		assertThat(quotaManager.getCustomLimit(storage)).isZero();
+		assertThat(quotaManager.getEffectiveLimit(storage)).isEqualTo(1000L);
+	}
+
+	@Test
+	@DisplayName("Should enforce custom limit (not global) in checkQuota")
+	void shouldEnforceCustomLimitInCheckQuota() throws IOException {
+		when(storage.exists(".quota")).thenReturn(true);
+		when(storage.isDirectory(".quota")).thenReturn(false);
+		when(storage.readString(".quota")).thenReturn("limitBytes=500\nupdatedAt=1000\n");
+		when(storage.exists(".storage")).thenReturn(true);
+		when(storage.isDirectory(".storage")).thenReturn(false);
+		when(storage.readString(".storage")).thenReturn("usedBytes=400\ncalculatedAt=" + System.currentTimeMillis() + "\n");
+
+		// used 400 + delta 200 = 600 > custom 500（但 <= 全局 1000）-> 应超限，证明用的是自定义上限
+		assertThatThrownBy(() -> quotaManager.checkQuota(storage, 200L))
+				.isInstanceOf(QuotaExceededException.class)
+				.satisfies(e -> assertThat(((QuotaExceededException) e).getMaxBytes()).isEqualTo(500L));
+	}
+
+	@Test
+	@DisplayName("Should write .quota when setting custom limit")
+	void shouldWriteQuotaWhenSetCustomLimit() throws IOException {
+		quotaManager.setCustomLimit(storage, 2048L);
+
+		verify(storage).writeString(eq(".quota"), contains("limitBytes=2048"));
+	}
+
+	@Test
+	@DisplayName("Should delete .quota when clearing custom limit")
+	void shouldDeleteQuotaWhenClearCustomLimit() throws IOException {
+		when(storage.exists(".quota")).thenReturn(true);
+		quotaManager.clearCustomLimit(storage);
+
+		verify(storage).delete(".quota");
+	}
+
+	@Test
+	@DisplayName("Should clear .quota when setting non-positive limit")
+	void shouldClearQuotaWhenSettingNonPositive() throws IOException {
+		when(storage.exists(".quota")).thenReturn(true);
+		quotaManager.setCustomLimit(storage, 0L);
+
+		verify(storage).delete(".quota");
+		verify(storage, never()).writeString(eq(".quota"), anyString());
+	}
+
+	@Test
+	@DisplayName("Should read cached meta without triggering recalculation")
+	void shouldReadCachedMetaWithoutRecalc() throws IOException {
+		when(storage.exists(".storage")).thenReturn(true);
+		when(storage.isDirectory(".storage")).thenReturn(false);
+		long now = System.currentTimeMillis();
+		when(storage.readString(".storage")).thenReturn("usedBytes=777\ncalculatedAt=" + now + "\n");
+
+		QuotaManager.StorageMeta meta = quotaManager.getCachedMeta(storage);
+
+		assertThat(meta).isNotNull();
+		assertThat(meta.usedBytes()).isEqualTo(777L);
+		assertThat(meta.calculatedAt()).isEqualTo(now);
+		verify(storage, never()).calculateTotalSize(anyList());
+	}
+
+	@Test
+	@DisplayName("Should return null cached meta when .storage absent")
+	void shouldReturnNullCachedMetaWhenAbsent() throws IOException {
+		when(storage.exists(".storage")).thenReturn(false);
+
+		assertThat(quotaManager.getCachedMeta(storage)).isNull();
+		verify(storage, never()).calculateTotalSize(anyList());
 	}
 }
